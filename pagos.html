@@ -163,6 +163,7 @@
     </nav>
 
     <script>
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
             authDomain: "tasks-app-80289.firebaseapp.com",
@@ -221,13 +222,14 @@
             btn.style.opacity = "0.5";
 
             try {
-                // --- LÓGICA DE CLOUDINARY CORREGIDA ---
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
-                formData.append('upload_preset', 'taskmaster_uploads'); // Tu preset UNSIGNED
+                formData.append('upload_preset', 'taskmaster_uploads');
+                // Agregamos tu API Key para asegurar que Cloudinary identifique la cuenta
+                formData.append('api_key', '352873656551711'); 
 
-                // URL simplificada para evitar errores de API Key
-                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/upload', {
+                // Subida a Cloudinary
+                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/image/upload', {
                     method: 'POST',
                     body: formData
                 });
@@ -240,7 +242,7 @@
 
                 const imageUrl = cloudData.secure_url;
 
-                // 2. GUARDAR EN FIREBASE
+                // Registro en Firebase
                 await db.collection("deposits").add({
                     uid: auth.currentUser.uid,
                     amount: parseFloat(val),
@@ -251,12 +253,11 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                alert("✅ COMPROBANTE RECIBIDO\n\nEl sistema está validando su transferencia. Tiempo estimado: 10 minutos.");
+                alert("✅ COMPROBANTE RECIBIDO\n\nEstamos validando su transferencia.");
                 window.location.href = "dashboard.html";
 
             } catch(e) { 
-                alert("Error de Conexión: " + e.message); 
-                console.error("Detalle:", e);
+                alert("Error: " + e.message); 
                 btn.disabled = false;
                 btn.innerText = "Confirmar Envío";
                 btn.style.opacity = "1";
