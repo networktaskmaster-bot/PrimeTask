@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Panel | TaskMaster Admin</title>
+    <title>Master Admin | TaskMaster Global</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -14,103 +14,67 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f0f2f5; 
-            color: #1e293b; 
-        }
-
-        .glass-header {
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .admin-card {
-            background: white;
-            border-radius: 2rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-            border: 1px solid #e2e8f0;
-        }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 1.5rem;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .btn-approve {
-            background: #22c55e;
-            box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.39);
-        }
-
-        .btn-reject {
-            background: #ef4444;
-            box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
-        }
-
-        .badge-pending { background: #fef9c3; color: #854d0e; }
-        .badge-approved { background: #dcfce7; color: #166534; }
-        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .card-pago { background: #1e293b; border-radius: 2rem; border: 1px solid #334155; transition: 0.3s; }
+        .btn-action { transition: all 0.2s; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
+        .btn-action:active { transform: scale(0.95); }
+        /* Ocultar scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
-    <header class="glass-header sticky top-0 z-50 text-white p-5 rounded-b-[2rem] mb-6">
+    <nav class="glass sticky top-0 z-50 p-5 rounded-b-[2.5rem] mb-6">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-extrabold tracking-tight italic">TASKMASTER <span class="text-blue-500">ADMIN</span></h1>
-                <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Panel de Gestión de Capital</p>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-black tracking-tight">ADMIN <span class="text-blue-500">PRO</span></h2>
+                    <p id="admin-status" class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sincronizando...</p>
+                </div>
             </div>
-            <div class="flex gap-3">
-                <button onclick="location.reload()" class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-sync-alt text-sm"></i>
-                </button>
+            <div class="flex gap-2">
+                <a href="dashboard.html" class="w-10 h-10 glass rounded-xl flex items-center justify-center"><i class="fas fa-home text-sm"></i></a>
+                <button onclick="logout()" class="w-10 h-10 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center"><i class="fas fa-power-off text-sm"></i></button>
             </div>
         </div>
-    </header>
+    </nav>
 
     <main class="max-w-5xl mx-auto p-4">
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="stat-card">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Esperando</p>
-                <p id="total-pending" class="text-2xl font-black text-slate-800">0</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div class="glass p-5 rounded-[2rem]">
+                <p class="text-[9px] font-black text-blue-400 uppercase">Pendientes</p>
+                <p id="stat-pending" class="text-2xl font-black mt-1">0</p>
             </div>
-            <div class="stat-card" style="border-left-color: #22c55e;">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aprobados</p>
-                <p id="total-approved" class="text-2xl font-black text-slate-800">0</p>
+            <div class="glass p-5 rounded-[2rem]">
+                <p class="text-[9px] font-black text-green-400 uppercase">Aprobados</p>
+                <p id="stat-approved" class="text-2xl font-black mt-1">0</p>
             </div>
-            <div class="stat-card" style="border-left-color: #10b981;">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto Total</p>
-                <p id="sum-amount" class="text-2xl font-black text-slate-800">$0</p>
-            </div>
-            <div class="stat-card" style="border-left-color: #ef4444;">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rechazados</p>
-                <p id="total-rejected" class="text-2xl font-black text-slate-800">0</p>
+            <div class="glass p-5 rounded-[2rem] col-span-2 border-l-4 border-blue-500">
+                <p class="text-[9px] font-black text-slate-400 uppercase">Capital Total Validado</p>
+                <p id="stat-money" class="text-2xl font-black text-blue-500 mt-1">$0.00</p>
             </div>
         </div>
 
-        <div class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar">
-            <button onclick="filtrar('todos')" class="bg-slate-800 text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Todos</button>
-            <button onclick="filtrar('pending')" class="bg-white text-slate-600 px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap shadow-sm border border-slate-200">Pendientes</button>
-            <button onclick="filtrar('approved')" class="bg-white text-slate-600 px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap shadow-sm border border-slate-200">Aprobados</button>
+        <div class="flex gap-3 overflow-x-auto no-scrollbar mb-8">
+            <button onclick="toggleSection('depositos')" class="bg-blue-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap">Depósitos</button>
+            <button onclick="toggleSection('usuarios')" class="glass px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap opacity-50">Usuarios</button>
+            <button onclick="window.location.href='soporte-admin.html'" class="glass px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap opacity-50">Soporte</button>
         </div>
 
-        <div id="container-requests" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="col-span-full text-center py-20">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                <p class="mt-4 font-bold text-slate-400 text-sm">Sincronizando con la nube...</p>
-            </div>
+        <div id="depositos-section" class="space-y-6">
+            <h3 class="text-sm font-black uppercase tracking-widest text-slate-500 mb-4 px-2">Solicitudes de Entrada</h3>
+            <div id="lista-peticiones" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
         </div>
 
     </main>
 
     <script>
-        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
             authDomain: "tasks-app-80289.firebaseapp.com",
@@ -121,146 +85,108 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        let filtroActual = 'todos';
-
-        // FUNCIÓN PRINCIPAL DE CARGA
-        function initAdmin() {
-            db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-                renderRequests(snapshot);
-                updateStats(snapshot);
-            });
-        }
-
-        function updateStats(snapshot) {
-            let pending = 0, approved = 0, rejected = 0, totalMoney = 0;
-            snapshot.forEach(doc => {
-                const s = doc.data().status;
-                if(s === 'pending' || s === 'En revisión') pending++;
-                if(s === 'approved') {
-                    approved++;
-                    totalMoney += Number(doc.data().amount || 0);
-                }
-                if(s === 'rejected') rejected++;
-            });
-            document.getElementById('total-pending').innerText = pending;
-            document.getElementById('total-approved').innerText = approved;
-            document.getElementById('total-rejected').innerText = rejected;
-            document.getElementById('sum-amount').innerText = `$${totalMoney.toLocaleString()}`;
-        }
-
-        function renderRequests(snapshot) {
-            const container = document.getElementById('container-requests');
-            container.innerHTML = "";
-
-            if(snapshot.empty) {
-                container.innerHTML = `<div class="col-span-full text-center p-10 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-400 font-bold">No hay solicitudes registradas aún.</div>`;
-                return;
+        // 1. VERIFICACIÓN DE SEGURIDAD Y ROL
+        auth.onAuthStateChanged(user => {
+            if(!user) window.location.href = "index.html";
+            else {
+                // Verificar si es Admin en la colección 'users'
+                db.collection("users").doc(user.uid).get().then(doc => {
+                    if(doc.exists && doc.data().role === "admin") {
+                        document.getElementById('admin-status').innerText = "Acceso Autorizado";
+                        cargarSistemaAgresivo();
+                    } else {
+                        alert("Acceso denegado: No eres administrador");
+                        window.location.href = "dashboard.html";
+                    }
+                });
             }
+        });
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const id = doc.id;
-                
-                // Normalización de estados para que lea ambos correctamente
-                let displayStatus = data.status;
-                if(displayStatus === 'pending') displayStatus = 'En revisión';
+        // 2. LECTURA AGRESIVA DE DATOS
+        function cargarSistemaAgresivo() {
+            // Escuchamos TODO sin filtros iniciales para evitar que Firebase ignore datos
+            db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                const lista = document.getElementById('lista-peticiones');
+                let html = "";
+                let p = 0, a = 0, money = 0;
 
-                // Lógica de filtro
-                if(filtroActual !== 'todos') {
-                   if(filtroActual === 'pending' && (data.status !== 'pending' && data.status !== 'En revisión')) return;
-                   if(filtroActual === 'approved' && data.status !== 'approved') return;
-                }
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const id = doc.id;
 
-                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('es-MX', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Reciente';
+                    // Conteo para estadísticas
+                    if(data.status === "pending" || data.status === "En revisión") p++;
+                    if(data.status === "approved") { a++; money += Number(data.amount); }
 
-                const card = `
-                    <div class="admin-card p-6 overflow-hidden">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter 
-                                    ${data.status === 'approved' ? 'badge-approved' : (data.status === 'rejected' ? 'badge-rejected' : 'badge-pending')}">
-                                    ${displayStatus}
-                                </span>
-                                <h3 class="text-2xl font-black text-slate-800 mt-2">$${data.amount} <span class="text-xs font-bold text-slate-400 uppercase">MXN</span></h3>
-                            </div>
-                            <p class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">${date}</p>
-                        </div>
-
-                        <div class="space-y-3 mb-6">
-                            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
-                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="overflow-hidden">
-                                    <p class="text-[8px] font-black text-slate-400 uppercase">ID del Cliente</p>
-                                    <p class="text-[10px] font-bold text-slate-700 truncate">${data.uid}</p>
-                                </div>
+                    // Renderizar solo pendientes o en revisión en la lista principal
+                    if(data.status === "pending" || data.status === "En revisión") {
+                        html += `
+                        <div class="card-pago p-6 shadow-2xl">
+                            <div class="flex justify-between items-start mb-5">
+                                <span class="bg-yellow-500/10 text-yellow-500 text-[9px] font-black px-3 py-1 rounded-full uppercase italic tracking-widest border border-yellow-500/20">Pendiente</span>
+                                <p class="text-[10px] font-bold text-slate-500">${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Reciente'}</p>
                             </div>
 
-                            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
-                                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 text-xs">
-                                    <i class="fas fa-university"></i>
-                                </div>
-                                <div>
-                                    <p class="text-[8px] font-black text-slate-400 uppercase">Banco Utilizado</p>
-                                    <p class="text-[10px] font-bold text-slate-700">${data.bank_used || 'No especificado'}</p>
-                                </div>
+                            <div class="mb-6">
+                                <p class="text-[9px] font-black text-slate-500 uppercase">Monto a Validar</p>
+                                <h4 class="text-3xl font-black text-white">$${data.amount} <span class="text-xs text-blue-500">MXN</span></h4>
                             </div>
-                        </div>
 
-                        <div class="relative group cursor-pointer mb-6" onclick="window.open('${data.evidence}', '_blank')">
-                            <img src="${data.evidence}" class="w-full h-44 object-cover rounded-[1.5rem] border border-slate-100 shadow-inner">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.5rem] flex items-center justify-center">
-                                <p class="text-white text-xs font-bold uppercase tracking-widest">Ver Comprobante</p>
+                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-white/5 mb-6">
+                                <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Evidencia del Pago</p>
+                                <a href="${data.evidence}" target="_blank" class="block group relative">
+                                    <img src="${data.evidence}" class="w-full h-40 object-cover rounded-xl border border-slate-700 group-hover:opacity-50 transition">
+                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                        <i class="fas fa-search-plus text-2xl"></i>
+                                    </div>
+                                </a>
                             </div>
-                        </div>
 
-                        ${data.status === 'pending' || data.status === 'En revisión' ? `
-                            <div class="grid grid-cols-2 gap-3">
-                                <button onclick="actualizarEstado('${id}', 'approved')" class="btn-approve text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-transform active:scale-95">
-                                    <i class="fas fa-check mr-2"></i> Aprobar
-                                </button>
-                                <button onclick="actualizarEstado('${id}', 'rejected')" class="btn-reject text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-transform active:scale-95">
-                                    <i class="fas fa-times mr-2"></i> Rechazar
-                                </button>
+                            <div class="flex gap-3">
+                                <button onclick="procesar('${id}', 'approved', '${data.uid}', ${data.amount})" class="btn-action flex-1 bg-blue-600 py-4 rounded-2xl text-[10px] text-white shadow-lg shadow-blue-600/20">Aprobar</button>
+                                <button onclick="procesar('${id}', 'rejected')" class="btn-action flex-1 bg-red-500/10 text-red-500 border border-red-500/20 py-4 rounded-2xl text-[10px]">Rechazar</button>
                             </div>
-                        ` : `
-                            <div class="text-center p-3 bg-slate-100 rounded-2xl border border-dashed border-slate-300">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitud Finalizada</p>
-                            </div>
-                        `}
-                    </div>
-                `;
-                container.innerHTML += card;
+                        </div>`;
+                    }
+                });
+
+                lista.innerHTML = html || `<div class="col-span-full text-center p-10 glass rounded-[2.5rem] opacity-50">No hay solicitudes por procesar</div>`;
+                document.getElementById('stat-pending').innerText = p;
+                document.getElementById('stat-approved').innerText = a;
+                document.getElementById('stat-money').innerText = `$${money.toLocaleString()}`;
             });
         }
 
-        async function actualizarEstado(docId, nuevoEstado) {
-            const confirmMsg = nuevoEstado === 'approved' ? "¿Confirmas que el dinero está en tu cuenta?" : "¿Rechazar este comprobante?";
-            if(!confirm(confirmMsg)) return;
+        // 3. PROCESAMIENTO DE SALDOS (Lógica de Suma)
+        async function procesar(docId, estado, userUid, monto) {
+            if(!confirm(`¿Confirmar acción: ${estado}?`)) return;
 
             try {
-                await db.collection("deposits").doc(docId).update({
-                    status: nuevoEstado
-                });
-                alert("Operación exitosa.");
+                // Actualizar el depósito
+                await db.collection("deposits").doc(docId).update({ status: estado });
+
+                if(estado === 'approved') {
+                    // SUMAR AL SALDO DEL USUARIO AGRESIVAMENTE
+                    const userRef = db.collection("users").doc(userUid);
+                    await db.runTransaction(async (transaction) => {
+                        const userDoc = await transaction.get(userRef);
+                        if (!userDoc.exists) throw "Usuario no existe";
+                        
+                        let nuevoSaldo = (Number(userDoc.data().balance) || 0) + Number(monto);
+                        transaction.update(userRef, { balance: nuevoSaldo });
+                    });
+                }
+                alert("Operación completada con éxito");
             } catch (e) {
-                alert("Error: " + e.message);
+                alert("Error crítico: " + e.message);
             }
         }
 
-        function filtrar(tipo) {
-            filtroActual = tipo;
-            // Forzar renderizado
-            db.collection("deposits").get().then(snapshot => {
-                renderRequests(snapshot);
-            });
+        function logout() {
+            auth.signOut().then(() => window.location.href = "index.html");
         }
-
-        // Iniciar panel
-        initAdmin();
-
     </script>
 </body>
 </html>
