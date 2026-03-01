@@ -14,12 +14,11 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: white; min-height: 100vh; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
         .card-pago { background: #1e293b; border-radius: 2rem; border: 1px solid #334155; transition: 0.3s; }
-        .btn-action { transition: all 0.2s; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
-        .btn-action:active { transform: scale(0.95); }
-        /* Ocultar scrollbar */
+        .tab-btn { transition: all 0.3s; opacity: 0.5; }
+        .tab-btn.active { opacity: 1; background: #2563eb; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -33,43 +32,50 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-black tracking-tight">ADMIN <span class="text-blue-500">PRO</span></h2>
-                    <p id="admin-status" class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sincronizando...</p>
+                    <p id="admin-status" class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Verificando...</p>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <a href="dashboard.html" class="w-10 h-10 glass rounded-xl flex items-center justify-center"><i class="fas fa-home text-sm"></i></a>
-                <button onclick="logout()" class="w-10 h-10 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center"><i class="fas fa-power-off text-sm"></i></button>
-            </div>
+            <button onclick="auth.signOut()" class="w-10 h-10 bg-red-500/20 text-red-500 rounded-xl flex items-center justify-center"><i class="fas fa-power-off text-sm"></i></button>
         </div>
     </nav>
 
     <main class="max-w-5xl mx-auto p-4">
         
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-            <div class="glass p-5 rounded-[2rem]">
-                <p class="text-[9px] font-black text-blue-400 uppercase">Pendientes</p>
+            <div class="glass p-5 rounded-[2rem] border-l-4 border-yellow-500">
+                <p class="text-[9px] font-black text-slate-400 uppercase italic">Pendientes</p>
                 <p id="stat-pending" class="text-2xl font-black mt-1">0</p>
             </div>
-            <div class="glass p-5 rounded-[2rem]">
-                <p class="text-[9px] font-black text-green-400 uppercase">Aprobados</p>
-                <p id="stat-approved" class="text-2xl font-black mt-1">0</p>
+            <div class="glass p-5 rounded-[2rem] border-l-4 border-red-500">
+                <p class="text-[9px] font-black text-slate-400 uppercase italic">Retiros</p>
+                <p id="stat-withdrawals" class="text-2xl font-black mt-1">0</p>
             </div>
             <div class="glass p-5 rounded-[2rem] col-span-2 border-l-4 border-blue-500">
-                <p class="text-[9px] font-black text-slate-400 uppercase">Capital Total Validado</p>
+                <p class="text-[9px] font-black text-slate-400 uppercase italic">Capital Total Validado</p>
                 <p id="stat-money" class="text-2xl font-black text-blue-500 mt-1">$0.00</p>
             </div>
         </div>
 
-        <div class="flex gap-3 overflow-x-auto no-scrollbar mb-8">
-            <button onclick="toggleSection('depositos')" class="bg-blue-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap">Depósitos</button>
-            <button onclick="toggleSection('usuarios')" class="glass px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap opacity-50">Usuarios</button>
-            <button onclick="window.location.href='soporte-admin.html'" class="glass px-6 py-3 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap opacity-50">Soporte</button>
+        <div class="flex gap-3 overflow-x-auto no-scrollbar mb-8 p-1">
+            <button onclick="showSec('depositos', this)" class="tab-btn active px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Depósitos</button>
+            <button onclick="showSec('retiros', this)" class="tab-btn glass px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Retiros</button>
+            <button onclick="showSec('usuarios', this)" class="tab-btn glass px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Usuarios</button>
+            <button onclick="window.location.href='soporte-admin.html'" class="tab-btn glass px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Soporte</button>
         </div>
 
-        <div id="depositos-section" class="space-y-6">
-            <h3 class="text-sm font-black uppercase tracking-widest text-slate-500 mb-4 px-2">Solicitudes de Entrada</h3>
-            <div id="lista-peticiones" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                </div>
+        <div id="sec-depositos" class="admin-section space-y-6">
+            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-4 px-2">Validación de Ingresos</h3>
+            <div id="lista-depositos" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </div>
+
+        <div id="sec-retiros" class="admin-section hidden space-y-6">
+            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-red-500 mb-4 px-2">Solicitudes de Salida</h3>
+            <div id="lista-retiros" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </div>
+
+        <div id="sec-usuarios" class="admin-section hidden space-y-6">
+            <h3 class="text-xs font-black uppercase tracking-[0.3em] text-blue-500 mb-4 px-2">Base de Datos Usuarios</h3>
+            <div id="lista-usuarios" class="space-y-3"></div>
         </div>
 
     </main>
@@ -87,105 +93,146 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // 1. VERIFICACIÓN DE SEGURIDAD Y ROL
+        // 1. SEGURIDAD DE ACCESO
         auth.onAuthStateChanged(user => {
             if(!user) window.location.href = "index.html";
             else {
-                // Verificar si es Admin en la colección 'users'
                 db.collection("users").doc(user.uid).get().then(doc => {
                     if(doc.exists && doc.data().role === "admin") {
-                        document.getElementById('admin-status').innerText = "Acceso Autorizado";
-                        cargarSistemaAgresivo();
+                        document.getElementById('admin-status').innerText = "Acceso Nivel Dios";
+                        iniciarSincronizacionTotal();
                     } else {
-                        alert("Acceso denegado: No eres administrador");
+                        alert("No tienes permisos de administrador.");
                         window.location.href = "dashboard.html";
                     }
                 });
             }
         });
 
-        // 2. LECTURA AGRESIVA DE DATOS
-        function cargarSistemaAgresivo() {
-            // Escuchamos TODO sin filtros iniciales para evitar que Firebase ignore datos
-            db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-                const lista = document.getElementById('lista-peticiones');
-                let html = "";
-                let p = 0, a = 0, money = 0;
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const id = doc.id;
-
-                    // Conteo para estadísticas
-                    if(data.status === "pending" || data.status === "En revisión") p++;
-                    if(data.status === "approved") { a++; money += Number(data.amount); }
-
-                    // Renderizar solo pendientes o en revisión en la lista principal
-                    if(data.status === "pending" || data.status === "En revisión") {
-                        html += `
-                        <div class="card-pago p-6 shadow-2xl">
-                            <div class="flex justify-between items-start mb-5">
-                                <span class="bg-yellow-500/10 text-yellow-500 text-[9px] font-black px-3 py-1 rounded-full uppercase italic tracking-widest border border-yellow-500/20">Pendiente</span>
-                                <p class="text-[10px] font-bold text-slate-500">${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Reciente'}</p>
-                            </div>
-
-                            <div class="mb-6">
-                                <p class="text-[9px] font-black text-slate-500 uppercase">Monto a Validar</p>
-                                <h4 class="text-3xl font-black text-white">$${data.amount} <span class="text-xs text-blue-500">MXN</span></h4>
-                            </div>
-
-                            <div class="bg-slate-800/50 p-4 rounded-2xl border border-white/5 mb-6">
-                                <p class="text-[9px] font-black text-slate-500 uppercase mb-2">Evidencia del Pago</p>
-                                <a href="${data.evidence}" target="_blank" class="block group relative">
-                                    <img src="${data.evidence}" class="w-full h-40 object-cover rounded-xl border border-slate-700 group-hover:opacity-50 transition">
-                                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                        <i class="fas fa-search-plus text-2xl"></i>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <div class="flex gap-3">
-                                <button onclick="procesar('${id}', 'approved', '${data.uid}', ${data.amount})" class="btn-action flex-1 bg-blue-600 py-4 rounded-2xl text-[10px] text-white shadow-lg shadow-blue-600/20">Aprobar</button>
-                                <button onclick="procesar('${id}', 'rejected')" class="btn-action flex-1 bg-red-500/10 text-red-500 border border-red-500/20 py-4 rounded-2xl text-[10px]">Rechazar</button>
-                            </div>
-                        </div>`;
+        // 2. SINCRONIZACIÓN MULTI-COLECCIÓN
+        function iniciarSincronizacionTotal() {
+            // Escuchar Depósitos
+            db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snap => {
+                let html = ""; let pend = 0; let totalVal = 0;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.status === "approved") totalVal += Number(d.amount);
+                    if(d.status === "pending" || d.status === "En revisión") {
+                        pend++;
+                        html += renderCardDep(doc.id, d);
                     }
                 });
+                document.getElementById('lista-depositos').innerHTML = html || "<p class='opacity-30 p-10 text-center uppercase font-bold text-xs'>Sin depósitos pendientes</p>";
+                document.getElementById('stat-pending').innerText = pend;
+                document.getElementById('stat-money').innerText = `$${totalVal.toLocaleString()}`;
+            });
 
-                lista.innerHTML = html || `<div class="col-span-full text-center p-10 glass rounded-[2.5rem] opacity-50">No hay solicitudes por procesar</div>`;
-                document.getElementById('stat-pending').innerText = p;
-                document.getElementById('stat-approved').innerText = a;
-                document.getElementById('stat-money').innerText = `$${money.toLocaleString()}`;
+            // Escuchar Retiros
+            db.collection("withdrawals").orderBy("timestamp", "desc").onSnapshot(snap => {
+                let html = ""; let ret = 0;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.status === "pending" || d.status === "En revisión") {
+                        ret++;
+                        html += renderCardRet(doc.id, d);
+                    }
+                });
+                document.getElementById('lista-retiros').innerHTML = html || "<p class='opacity-30 p-10 text-center uppercase font-bold text-xs'>Sin retiros pendientes</p>";
+                document.getElementById('stat-withdrawals').innerText = ret;
+            });
+
+            // Escuchar Usuarios
+            db.collection("users").onSnapshot(snap => {
+                let html = "";
+                snap.forEach(doc => {
+                    const u = doc.data();
+                    html += `
+                        <div class="glass p-5 rounded-2xl flex justify-between items-center border border-white/5">
+                            <div>
+                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">${u.email || 'Usuario Nuevo'}</p>
+                                <p class="text-xs font-bold text-slate-300">$${u.balance || 0} | Paso: ${u.step || 1}</p>
+                            </div>
+                            <button onclick="editarSaldo('${doc.id}', ${u.balance || 0})" class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-blue-600 transition">
+                                <i class="fas fa-coins text-xs"></i>
+                            </button>
+                        </div>`;
+                });
+                document.getElementById('lista-usuarios').innerHTML = html;
             });
         }
 
-        // 3. PROCESAMIENTO DE SALDOS (Lógica de Suma)
-        async function procesar(docId, estado, userUid, monto) {
-            if(!confirm(`¿Confirmar acción: ${estado}?`)) return;
-
-            try {
-                // Actualizar el depósito
-                await db.collection("deposits").doc(docId).update({ status: estado });
-
-                if(estado === 'approved') {
-                    // SUMAR AL SALDO DEL USUARIO AGRESIVAMENTE
-                    const userRef = db.collection("users").doc(userUid);
-                    await db.runTransaction(async (transaction) => {
-                        const userDoc = await transaction.get(userRef);
-                        if (!userDoc.exists) throw "Usuario no existe";
-                        
-                        let nuevoSaldo = (Number(userDoc.data().balance) || 0) + Number(monto);
-                        transaction.update(userRef, { balance: nuevoSaldo });
-                    });
-                }
-                alert("Operación completada con éxito");
-            } catch (e) {
-                alert("Error crítico: " + e.message);
-            }
+        // 3. RENDERIZADO DE TARJETAS
+        function renderCardDep(id, data) {
+            return `
+            <div class="card-pago p-6">
+                <div class="flex justify-between mb-4">
+                    <span class="text-[8px] font-black text-blue-500 uppercase tracking-[0.2em]">Depósito</span>
+                    <p class="text-[9px] text-slate-500">${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'Hoy'}</p>
+                </div>
+                <h4 class="text-3xl font-black mb-4">$${data.amount}</h4>
+                <div class="rounded-2xl overflow-hidden mb-5 border border-slate-700">
+                    <img src="${data.evidence}" class="w-full h-40 object-cover cursor-zoom-in" onclick="window.open('${data.evidence}')">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="aprobarPago('${id}', '${data.uid}', ${data.amount})" class="flex-1 bg-blue-600 py-4 rounded-xl text-[10px] font-black uppercase">Aprobar</button>
+                    <button onclick="rechazar('${id}', 'deposits')" class="flex-1 bg-slate-800 text-red-500 py-4 rounded-xl text-[10px] font-black uppercase">X</button>
+                </div>
+            </div>`;
         }
 
-        function logout() {
-            auth.signOut().then(() => window.location.href = "index.html");
+        function renderCardRet(id, data) {
+            return `
+            <div class="card-pago p-6 border-l-4 border-red-500">
+                <div class="flex justify-between mb-2">
+                    <span class="text-[8px] font-black text-red-500 uppercase tracking-[0.2em]">Retiro</span>
+                    <p class="text-[9px] text-slate-500">${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : 'Hoy'}</p>
+                </div>
+                <h4 class="text-2xl font-black text-white mb-4">$${data.amount}</h4>
+                <div class="bg-slate-900/50 p-4 rounded-xl mb-4 text-[10px] font-bold space-y-1">
+                    <p><span class="text-slate-500 uppercase">BANCO:</span> ${data.bank}</p>
+                    <p><span class="text-slate-500 uppercase">CLABE:</span> <span class="text-blue-400 font-black tracking-widest">${data.account}</span></p>
+                    <p><span class="text-slate-500 uppercase">TITULAR:</span> ${data.holder}</p>
+                </div>
+                <button onclick="completarRetiro('${id}')" class="w-full bg-red-600/20 text-red-500 py-4 rounded-xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition">Marcar como Pagado</button>
+            </div>`;
+        }
+
+        // 4. LÓGICA DE ACCIONES
+        async function aprobarPago(id, uid, monto) {
+            if(!confirm("¿Deseas sumar $" + monto + " al usuario?")) return;
+            await db.collection("deposits").doc(id).update({ status: "approved" });
+            const userRef = db.collection("users").doc(uid);
+            await db.runTransaction(async (t) => {
+                const doc = await t.get(userRef);
+                const nuevo = (doc.data().balance || 0) + Number(monto);
+                t.update(userRef, { balance: nuevo });
+            });
+            alert("Saldado con éxito");
+        }
+
+        async function completarRetiro(id) {
+            if(!confirm("¿Ya transferiste el dinero?")) return;
+            await db.collection("withdrawals").doc(id).update({ status: "Completado" });
+        }
+
+        async function rechazar(id, col) {
+            if(!confirm("¿Rechazar esta solicitud?")) return;
+            await db.collection(col).doc(id).update({ status: "rejected" });
+        }
+
+        async function editarSaldo(id, saldoActual) {
+            const n = prompt("Nuevo saldo:", saldoActual);
+            if(n !== null) await db.collection("users").doc(id).update({ balance: Number(n) });
+        }
+
+        // 5. NAVEGACIÓN
+        function showSec(sec, btn) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('sec-' + sec).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'glass'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.add('glass'));
+            btn.classList.add('active');
+            btn.classList.remove('glass');
         }
     </script>
 </body>
