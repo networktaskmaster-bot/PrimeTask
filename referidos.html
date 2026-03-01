@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red de Negocios | TaskMaster Pro</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; min-height: 100vh; }
+        .header-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+        .soft-card { background: white; border-radius: 2rem; border: 1px solid #f1f5f9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .ref-badge { background: #eff6ff; color: #2563eb; padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 800; }
+    </style>
+</head>
+<body class="pb-32">
+
+    <header class="header-gradient p-8 pb-24 rounded-b-[3rem] text-white">
+        <div class="flex items-center justify-between mb-6">
+            <button onclick="window.location.href='perfil.html'" class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="text-sm font-black uppercase tracking-widest">Mi Red de Socios</h1>
+            <div class="w-10"></div>
+        </div>
+        
+        <div class="text-center">
+            <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest mb-2">Comisiones Totales</p>
+            <h2 class="text-4xl font-black tracking-tighter">$<span id="total-comm">0.00</span></h2>
+        </div>
+    </header>
+
+    <main class="px-6 -mt-12 max-w-2xl mx-auto space-y-6">
+        
+        <section class="soft-card p-6">
+            <h3 class="text-xs font-black uppercase text-slate-400 mb-4 tracking-widest">Tu Enlace de Invitación</h3>
+            <div class="flex gap-2">
+                <input type="text" id="share-url" readonly class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[11px] font-bold text-slate-600 outline-none">
+                <button onclick="copiarEnlace()" class="bg-blue-600 text-white px-5 rounded-xl text-xs font-bold active:scale-95 transition-transform">
+                    <i class="fas fa-copy"></i>
+                </div>
+            </div>
+            <p class="text-[9px] text-slate-400 mt-3 font-medium uppercase">Ganas <span class="text-green-600 font-black">5% de comisión</span> por cada tarea de tus invitados.</p>
+        </section>
+
+        <section class="soft-card p-6 min-h-[300px]">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xs font-black uppercase text-slate-800 tracking-widest">Mis Invitados (<span id="count-ref">0</span>)</h3>
+                <i class="fas fa-users text-slate-300"></i>
+            </div>
+
+            <div id="referrals-list" class="space-y-4">
+                <div class="text-center py-10">
+                    <i class="fas fa-user-clock text-slate-200 text-4xl mb-3"></i>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cargando tu red...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <nav class="fixed bottom-8 inset-x-6 z-50">
+        <div class="max-w-md mx-auto bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-4 flex justify-around items-center border border-white shadow-2xl">
+            <a href="dashboard.html" class="text-slate-400 flex flex-col items-center gap-1"><i class="fas fa-compass text-xl"></i><span class="text-[8px] font-black uppercase">Misiones</span></a>
+            <a href="pagos.html" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center -translate-y-10 shadow-xl border-4 border-white rotate-45"><i class="fas fa-plus text-white -rotate-45 text-lg"></i></a>
+            <a href="perfil.html" class="text-slate-400 flex flex-col items-center gap-1"><i class="fas fa-user-circle text-xl"></i><span class="text-[8px] font-black uppercase">Mi Perfil</span></a>
+        </div>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
+            authDomain: "tasks-app-80289.firebaseapp.com",
+            projectId: "tasks-app-80289",
+            storageBucket: "tasks-app-80289.firebasestorage.app",
+            messagingSenderId: "135500027421",
+            appId: "1:135500027421:web:8ccb011b5af1f483df58f4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        auth.onAuthStateChanged(user => {
+            if(user) {
+                cargarRed(user.uid);
+                generarEnlace(user.uid);
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        async function generarEnlace(uid) {
+            const doc = await db.collection("users").doc(uid).get();
+            const code = doc.data().referralCode || "DIRECTO";
+            // Cambia esto por tu dominio real cuando lo subas
+            const urlBase = window.location.origin; 
+            document.getElementById('share-url').value = `${urlBase}/index.html?ref=${code}`;
+        }
+
+        function cargarRed(uid) {
+            db.collection("users").where("padrino", "==", uid).onSnapshot(snap => {
+                const list = document.getElementById('referrals-list');
+                const count = document.getElementById('count-ref');
+                list.innerHTML = "";
+                count.innerText = snap.size;
+
+                if(snap.empty) {
+                    list.innerHTML = `<p class="text-center text-[10px] font-bold text-slate-400 py-10 uppercase">Aún no tienes socios invitados</p>`;
+                    return;
+                }
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const fecha = data.created ? new Date(data.created.seconds * 1000).toLocaleDateString() : 'Reciente';
+                    
+                    list.innerHTML += `
+                        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-black text-slate-800">${data.username}</p>
+                                    <p class="text-[9px] text-slate-400 font-bold uppercase">Unido: ${fecha}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="ref-badge">Nivel ${data.level || 1}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function copiarEnlace() {
+            const input = document.getElementById('share-url');
+            input.select();
+            document.execCommand('copy');
+            alert("¡Enlace copiado! Compártelo con tus amigos.");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Control Pro | TaskMaster</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; overflow: hidden; }
+        .tab-content { display: none; height: 100%; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sidebar { background: #0f172a; z-index: 50; }
+        .nav-link { 
+            display: flex; align-items: center; gap: 12px; padding: 12px 18px;
+            border-radius: 12px; color: #94a3b8; transition: 0.3s; font-size: 13px; font-weight: 600;
+            width: 100%; cursor: pointer; border: none; background: transparent;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-link.active { background: #2563eb; color: white; }
+        .admin-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .img-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 12px; cursor: pointer; border: 2px solid #f1f5f9; }
+        /* Chat Styles */
+        .chat-window { height: 450px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 20px; background: #f1f5f9; border-radius: 1rem; }
+        .m-admin { align-self: flex-end; background: #2563eb; color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; font-size: 12px; }
+        .m-user { align-self: flex-start; background: white; color: #1e293b; padding: 10px 15px; border-radius: 15px 15px 15px 0; font-size: 12px; border: 1px solid #e2e8f0; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="w-64 sidebar p-6 flex flex-col gap-6 text-white shrink-0">
+        <div class="px-2 mb-4">
+            <h1 class="text-lg font-black italic text-white">TASKMASTER <span class="text-blue-500 block text-[10px] tracking-widest">CONTROL</span></h1>
+        </div>
+        <nav class="flex flex-col gap-1 flex-1">
+            <button onclick="showTab('dashboard', this)" class="nav-link active"><i class="fas fa-chart-pie"></i> Dashboard</button>
+            <button onclick="showTab('users', this)" class="nav-link"><i class="fas fa-users"></i> Usuarios</button>
+            <button onclick="showTab('staff', this)" class="nav-link"><i class="fas fa-shield-user"></i> Personal</button>
+            <button onclick="showTab('deposits', this)" class="nav-link"><i class="fas fa-arrow-down"></i> Depósitos</button>
+            <button onclick="showTab('support', this)" class="nav-link"><i class="fas fa-headset"></i> Soporte</button>
+        </nav>
+        <button onclick="auth.signOut()" class="nav-link text-red-400"><i class="fas fa-power-off"></i> Salir</button>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
+            <h2 id="tab-title" class="text-sm font-black text-slate-800 uppercase">Dashboard General</h2>
+            <p id="admin-mail-display" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></p>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8">
+            
+            <div id="dashboard" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="admin-card p-6 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Total Usuarios</p>
+                        <h3 id="stat-total-users" class="text-2xl font-black">0</h3>
+                    </div>
+                    <div class="admin-card p-6 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Capital Total</p>
+                        <h3 id="stat-total-money" class="text-2xl font-black text-blue-600">$0</h3>
+                    </div>
+                    <div class="admin-card p-6 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Soporte</p>
+                        <h3 id="stat-support" class="text-2xl font-black text-red-500">0</h3>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="admin-card p-6"><canvas id="chartDevices"></canvas></div>
+                    <div class="admin-card p-6"><canvas id="chartFlow"></canvas></div>
+                </div>
+            </div>
+
+            <div id="users" class="tab-content">
+                <div class="admin-card overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] uppercase font-black text-slate-400">
+                            <tr><th class="p-4">Usuario</th><th>Balance</th><th>Nivel</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="users-table" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="staff" class="tab-content">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold">Equipo Administrativo</h3>
+                    <button onclick="addStaff()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">+ Agregar</button>
+                </div>
+                <div class="admin-card overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                            <tr><th class="p-4">Email</th><th>Rol</th><th>Acción</th></tr>
+                        </thead>
+                        <tbody id="staff-table" class="text-sm font-semibold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="deposits" class="tab-content">
+                <div id="deposits-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+
+            <div id="support" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                    <div id="support-list" class="space-y-3 overflow-y-auto pr-2"></div>
+                    <div id="chat-panel" class="lg:col-span-2 admin-card p-6 flex flex-col gap-4" style="display:none;">
+                        <h4 id="chat-user-title" class="font-black text-sm uppercase border-b pb-2">Chat</h4>
+                        <div id="admin-chat-box" class="chat-window"></div>
+                        <div class="flex gap-2">
+                            <input type="text" id="admin-reply-input" placeholder="Escribir..." class="flex-1 bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none">
+                            <button onclick="sendAdminReply()" class="bg-blue-600 text-white px-6 rounded-xl"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
+            authDomain: "tasks-app-80289.firebaseapp.com",
+            projectId: "tasks-app-80289",
+            storageBucket: "tasks-app-80289.firebasestorage.app",
+            messagingSenderId: "135500027421",
+            appId: "1:135500027421:web:8ccb011b5af1f483df58f4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        let activeChatUid = null;
+
+        auth.onAuthStateChanged(user => {
+            if(!user) window.location.href = "index.html";
+            else {
+                document.getElementById('admin-mail-display').innerText = user.email;
+                initCharts();
+                loadData();
+                loadDeposits();
+                loadSupportTickets();
+            }
+        });
+
+        function showTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+            document.getElementById('tab-title').innerText = btn.innerText;
+        }
+
+        function loadData() {
+            db.collection("users").onSnapshot(snap => {
+                const usersTable = document.getElementById('users-table');
+                const staffTable = document.getElementById('staff-table');
+                let totalMoney = 0;
+                usersTable.innerHTML = "";
+                staffTable.innerHTML = "";
+
+                snap.forEach(doc => {
+                    const u = doc.data();
+                    if(!u.role || u.role === 'user') {
+                        totalMoney += (u.balance || 0);
+                        usersTable.innerHTML += `
+                            <tr class="border-b">
+                                <td class="p-4 font-bold">${u.username}<br><span class="text-[9px] text-slate-400">${doc.id}</span></td>
+                                <td class="font-black text-blue-600">$${u.balance || 0}</td>
+                                <td>Nivel ${u.level || 1}</td>
+                                <td><button onclick="editBalance('${doc.id}', ${u.balance})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button></td>
+                            </tr>`;
+                    } else {
+                        staffTable.innerHTML += `<tr><td class="p-4">${u.email}</td><td>${u.role}</td><td><button onclick="removeStaff('${doc.id}')" class="text-red-400">X</button></td></tr>`;
+                    }
+                });
+                document.getElementById('stat-total-users').innerText = snap.size;
+                document.getElementById('stat-total-money').innerText = `$${totalMoney.toLocaleString()}`;
+            });
+        }
+
+        function loadDeposits() {
+            db.collection("deposits").where("status", "==", "En revisión").onSnapshot(snap => {
+                const container = document.getElementById('deposits-list');
+                container.innerHTML = "";
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    container.innerHTML += `
+                        <div class="admin-card p-4">
+                            <img src="${d.evidence || ''}" class="img-preview mb-2">
+                            <p class="font-black text-green-600">$${d.amount}</p>
+                            <button onclick="approveDeposit('${doc.id}', '${d.uid}', ${d.amount})" class="w-full bg-blue-600 text-white py-2 rounded-lg mt-2 text-xs">Aprobar</button>
+                        </div>`;
+                });
+            });
+        }
+
+        // --- SOPORTE ---
+        function loadSupportTickets() {
+            db.collection("soporte").orderBy("lastUpdate", "desc").onSnapshot(snap => {
+                const list = document.getElementById('support-list');
+                list.innerHTML = "";
+                document.getElementById('stat-support').innerText = snap.size;
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const isNew = data.unread ? 'border-l-4 border-blue-500' : '';
+                    list.innerHTML += `<div onclick="openChat('${doc.id}', '${data.username}')" class="admin-card p-4 cursor-pointer ${isNew}">
+                        <h5 class="text-xs font-black uppercase">${data.username}</h5>
+                        <p class="text-[9px] text-slate-400">${data.unread ? 'NUEVO MENSAJE' : 'Leído'}</p>
+                    </div>`;
+                });
+            });
+        }
+
+        function openChat(uid, name) {
+            activeChatUid = uid;
+            document.getElementById('chat-panel').style.display = 'flex';
+            document.getElementById('chat-user-title').innerText = name;
+            db.collection("soporte").doc(uid).update({ unread: false });
+            db.collection("soporte").doc(uid).collection("mensajes").orderBy("fecha", "asc").onSnapshot(snap => {
+                const box = document.getElementById('admin-chat-box');
+                box.innerHTML = "";
+                snap.forEach(m => {
+                    const d = m.data();
+                    box.innerHTML += `<div class="${d.sender === 'user' ? 'm-user' : 'm-admin'}">${d.texto}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        async function sendAdminReply() {
+            const txt = document.getElementById('admin-reply-input').value;
+            if(!txt) return;
+            await db.collection("soporte").doc(activeChatUid).collection("mensajes").add({
+                texto: txt, sender: 'admin', fecha: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await db.collection("soporte").doc(activeChatUid).update({ lastUpdate: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById('admin-reply-input').value = "";
+        }
+
+        async function approveDeposit(id, uid, amt) {
+            const userRef = db.collection("users").doc(uid);
+            const userDoc = await userRef.get();
+            const newBal = (userDoc.data().balance || 0) + amt;
+            await userRef.update({ balance: newBal });
+            await db.collection("deposits").doc(id).update({ status: "Aprobado" });
+        }
+
+        async function editBalance(uid, cur) {
+            const val = prompt("Nuevo balance:", cur);
+            if(val) await db.collection("users").doc(uid).update({ balance: parseFloat(val) });
+        }
+
+        async function removeStaff(uid) {
+            await db.collection("users").doc(uid).update({ role: "user" });
+        }
+
+        function initCharts() {
+            new Chart(document.getElementById('chartDevices'), { type: 'doughnut', data: { labels: ['Móvil', 'PC'], datasets: [{ data: [10, 5], backgroundColor: ['#3b82f6', '#e2e8f0'] }] } });
+            new Chart(document.getElementById('chartFlow'), { type: 'line', data: { labels: ['Lun', 'Dom'], datasets: [{ label: 'Flujo', data: [100, 500], borderColor: '#10b981' }] } });
+        }
+    </script>
+</body>
+</html>

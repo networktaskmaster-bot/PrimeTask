@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Tareas | TaskMaster Pro v21.0 Plus</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f0f4f8; color: #1e293b; min-height: 100vh; overflow-x: hidden; }
+        .soft-card { background: white; border-radius: 2.5rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid rgba(255,255,255,0.8); transition: all 0.4s ease; }
+        .header-gradient { background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); position: relative; overflow: hidden; }
+        .progress-container { height: 12px; background: #e2e8f0; border-radius: 20px; }
+        .progress-bar-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #2563eb, #60a5fa); transition: width 1s ease; }
+        
+        /* VISUAL DEL PRODUCTO DINÁMICO */
+        .product-visual-box {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+            border-radius: 2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #cbd5e1;
+            position: relative;
+        }
+        .product-icon-circle {
+            width: 75px;
+            height: 75px;
+            background: white;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            color: #2563eb;
+            font-size: 2rem;
+        }
+        .product-name-tag {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.75rem;
+            color: #1e293b;
+            background: white;
+            padding: 6px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .btn-task { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .scanner { position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); }
+        .scanning .scanner { animation: scan 1.5s infinite; }
+        @keyframes scan { 0% { left: -100%; } 100% { left: 100%; } }
+        
+        .feed-animate { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="pb-36">
+
+    <header class="header-gradient p-8 pb-20 rounded-b-[4rem] text-white shadow-2xl">
+        <div class="flex justify-between items-center mb-8 relative z-10">
+            <div>
+                <p id="welcome-label" class="text-blue-100 text-[10px] font-bold uppercase tracking-[0.3em] mb-1 italic">Sincronizando...</p>
+                <h1 id="user-display-name" class="text-3xl font-extrabold tracking-tight">Bienvenido</h1>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="solicitarNotificaciones()" class="bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/10">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <button onclick="logout()" class="bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/10">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white p-7 rounded-[2.5rem] shadow-2xl flex justify-between items-center text-slate-900 translate-y-6 border border-slate-100 relative z-10">
+            <div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1"><i class="fas fa-wallet text-blue-500 mr-1"></i> Balance Total</p>
+                <p class="text-3xl font-extrabold tracking-tight">$<span id="bal-val">0.00</span></p>
+            </div>
+            <div id="level-pill" class="bg-blue-50 text-blue-600 px-5 py-2.5 rounded-2xl border border-blue-200 font-black text-[10px] uppercase italic">
+                Cargando...
+            </div>
+        </div>
+    </header>
+
+    <main class="p-6 mt-12 max-w-2xl mx-auto">
+        
+        <div class="mb-12 px-2">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h3 class="text-sm font-extrabold text-slate-800 tracking-tight">Progreso Diario</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Auditorías de Mercado</p>
+                </div>
+                <p class="text-lg font-black text-blue-600 italic"><span id="task-step">0</span>/5</p>
+            </div>
+            <div class="progress-container">
+                <div id="progress-ui" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <section id="task-card" class="soft-card p-8 text-center relative overflow-hidden mb-10 border-b-4 border-blue-100">
+            <div class="relative z-10">
+                
+                <div class="product-visual-box">
+                    <div class="product-icon-circle">
+                        <i id="product-icon" class="fas fa-box-open"></i>
+                    </div>
+                    <div id="product-text-name" class="product-name-tag">PRODUCTO VIRTUAL</div>
+                    <p class="text-[9px] font-bold text-slate-400 mt-3 uppercase tracking-tighter">Certificado por TaskMaster Cloud</p>
+                </div>
+
+                <div class="flex justify-between items-center mb-5">
+                    <div class="text-left">
+                        <h2 id="task-title" class="text-xl font-black text-slate-800 tracking-tighter uppercase italic">Auditoría #1</h2>
+                        <p id="task-vendor" class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Verificando Servidor</p>
+                    </div>
+                    <div class="bg-blue-600 text-white px-3 py-1.5 rounded-2xl text-[9px] font-black uppercase tracking-widest">VIP</div>
+                </div>
+                
+                <div class="bg-slate-50 p-6 rounded-[1.5rem] mb-8 border border-slate-100 text-center">
+                    <p id="task-desc" class="text-xs text-slate-500 leading-relaxed font-semibold italic">
+                        "Cargando los requisitos de la auditoría..."
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm text-left">
+                        <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Costo Orden</p>
+                        <p id="task-cost" class="text-xl font-extrabold text-slate-700">$0.00</p>
+                    </div>
+                    <div class="p-5 rounded-3xl bg-green-50 border border-green-100 shadow-sm text-left">
+                        <p class="text-[9px] font-black text-green-600 uppercase mb-2">Comisión</p>
+                        <p id="task-comm" class="text-xl font-extrabold text-green-600">+$0.00</p>
+                    </div>
+                </div>
+
+                <button onclick="startAuditProcess()" id="btn-main" class="btn-task w-full py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl">
+                    <span id="btn-text">Ejecutar Auditoría</span>
+                    <div class="scanner"></div>
+                </button>
+            </div>
+        </section>
+
+        <div id="live-feed" class="space-y-4"></div>
+
+    </main>
+
+    <nav class="fixed bottom-8 inset-x-6 z-50">
+        <div class="max-w-md mx-auto bg-white/90 backdrop-blur-2xl rounded-[2.5rem] p-4 flex justify-around items-center border border-white shadow-2xl">
+            <a href="dashboard.html" class="text-blue-600 flex flex-col items-center gap-1">
+                <i class="fas fa-compass text-xl"></i>
+                <span class="text-[8px] font-black uppercase">Misiones</span>
+            </a>
+            <a href="pagos.html" class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center -translate-y-10 shadow-xl border-4 border-white rotate-45 hover:scale-110 transition-transform">
+                <i class="fas fa-plus text-white -rotate-45 text-lg"></i>
+            </a>
+            <a href="perfil.html" class="text-slate-400 flex flex-col items-center gap-1">
+                <i class="fas fa-user-circle text-xl"></i>
+                <span class="text-[8px] font-black uppercase">Mi Perfil</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
+            authDomain: "tasks-app-80289.firebaseapp.com",
+            projectId: "tasks-app-80289",
+            storageBucket: "tasks-app-80289.firebasestorage.app",
+            messagingSenderId: "135500027421",
+            appId: "1:135500027421:web:8ccb011b5af1f483df58f4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const messaging = firebase.messaging();
+
+        const LEVEL_CONFIG = {
+            1: { name: "Nivel VIP 1 Elite", tasks: [
+                { cost: 0, comm: 20, vendor: "Amazon Global", icon: "fa-mobile-alt", prodName: "iPhone 15 Pro Max", desc: "Auditoría de Protocolo: Verifica el posicionamiento del producto insignia en Amazon." },
+                { cost: 100, comm: 45, vendor: "Mercado Libre", icon: "fa-headphones", prodName: "Airpods Pro Gen 2", desc: "Optimización de Tráfico: Valida el stock del centro logístico regional." },
+                { cost: 300, comm: 120, vendor: "Walmart Plus", icon: "fa-laptop", prodName: "MacBook Air M2", desc: "Sincronización: Confirma órdenes pendientes del departamento electrónico." },
+                { cost: 800, comm: 350, vendor: "Shopee Tech", icon: "fa-gamepad", prodName: "PlayStation 5 Slim", desc: "Calidad: Filtra reseñas certificadas para mejorar conversión del producto." },
+                { cost: 3000, comm: 1200, vendor: "Alibaba Cloud", icon: "fa-tablet-alt", prodName: "iPad Pro 12.9", desc: "Liquidación Maestra: Finaliza el ciclo de datos del Nivel 1." }
+            ]},
+            2: { name: "Nivel VIP 2 Platinum", tasks: [
+                { cost: 500, comm: 250, vendor: "Apple Premium", icon: "fa-watch", prodName: "Apple Watch Ultra", desc: "Certificación: Valida números de serie para distribución internacional." },
+                { cost: 1500, comm: 700, vendor: "Samsung Mobile", icon: "fa-tv", prodName: "Neo QLED 8K TV", desc: "Auditoría de Lanzamiento: Procesa órdenes prioritarias Galaxy 2026." },
+                { cost: 4500, comm: 2100, vendor: "Tesla Gear", icon: "fa-car-battery", prodName: "Wall Connector V3", desc: "Validación de Activos: Auditoría de componentes premium energéticos." },
+                { cost: 5500, comm: 2800, vendor: "Luxury Brands", icon: "fa-gem", prodName: "Rolex Oyster Perp.", desc: "Protocolo de Lujo: Verificación de autenticidad en marcas exclusivas." },
+                { cost: 12000, comm: 6000, vendor: "Corporate Hub", icon: "fa-server", prodName: "Cloud Server Pro", desc: "Cierre total de auditoría Platinum del trimestre." }
+            ]}
+        };
+
+        let userData = null;
+
+        auth.onAuthStateChanged(user => {
+            if(!user) window.location.href = "index.html";
+            else syncUser(user.uid);
+        });
+
+        async function solicitarNotificaciones() {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    const token = await messaging.getToken({ vapidKey: 'TU_VAPID_KEY_AQUI' });
+                    if (token) {
+                        await db.collection("users").doc(auth.currentUser.uid).update({ fcmToken: token });
+                        alert("✅ Notificaciones activadas.");
+                    }
+                }
+            } catch (e) { console.log("Notificaciones no soportadas."); }
+        }
+
+        async function syncUser(uid) {
+            db.collection("users").doc(uid).onSnapshot(async doc => {
+                if(doc.exists) {
+                    userData = doc.data();
+                    if (userData.level === undefined || userData.balance === 1800) {
+                        await db.collection("users").doc(uid).update({ level: 1, step: 1, balance: 80 });
+                        return;
+                    }
+                    renderDashboard();
+                } else {
+                    await db.collection("users").doc(uid).set({ username: "Usuario", level: 1, step: 1, balance: 80 });
+                }
+            });
+            startFeed();
+        }
+
+        function renderDashboard() {
+            if(!userData) return;
+            const lvl = userData.level || 1;
+            const step = userData.step || 1;
+            const task = LEVEL_CONFIG[lvl].tasks[step - 1];
+
+            document.getElementById('welcome-label').innerText = `¡Qué bueno verte, ${userData.username ? userData.username.split(" ")[0] : 'Hola'}!`;
+            document.getElementById('bal-val').innerText = (userData.balance || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 });
+            document.getElementById('level-pill').innerText = LEVEL_CONFIG[lvl].name;
+            document.getElementById('task-step').innerText = step;
+            document.getElementById('progress-ui').style.width = (step * 20) + "%";
+            
+            // Visual dinámico
+            document.getElementById('product-icon').className = `fas ${task.icon}`;
+            document.getElementById('product-text-name').innerText = task.prodName;
+            document.getElementById('task-title').innerText = `Auditoría #${step}`;
+            document.getElementById('task-vendor').innerText = `Origen: ${task.vendor}`;
+            document.getElementById('task-desc').innerText = `"${task.desc}"`;
+            document.getElementById('task-cost').innerText = "$" + task.cost.toLocaleString();
+            document.getElementById('task-comm').innerText = "+$" + task.comm.toLocaleString();
+
+            const btn = document.getElementById('btn-main');
+            const btnText = document.getElementById('btn-text');
+            if(userData.balance < task.cost) {
+                btnText.innerText = "Faltan $" + (task.cost - userData.balance).toLocaleString();
+                btn.style.opacity = "0.5";
+            } else {
+                btnText.innerText = "Ejecutar Auditoría";
+                btn.style.opacity = "1";
+            }
+        }
+
+        function startAuditProcess() {
+            const step = userData.step || 1;
+            const task = LEVEL_CONFIG[userData.level].tasks[step - 1];
+
+            if(userData.balance < task.cost) {
+                alert("⚠️ Saldo insuficiente. Realiza una recarga.");
+                window.location.href = "pagos.html";
+                return;
+            }
+
+            const btn = document.getElementById('btn-main');
+            btn.classList.add('scanning');
+            document.getElementById('btn-text').innerText = "AUDITANDO DATOS...";
+
+            setTimeout(async () => {
+                btn.classList.remove('scanning');
+                const newBalance = userData.balance + task.comm;
+                let nextStep = step + 1;
+                let nextLevel = userData.level;
+
+                if(nextStep > 5) {
+                    alert("🏆 ¡Excelente! Has completado el nivel.");
+                    nextStep = 1;
+                    nextLevel++;
+                }
+
+                await db.collection("users").doc(auth.currentUser.uid).update({
+                    balance: newBalance, step: nextStep, level: nextLevel
+                });
+                alert("✅ Auditoría completada. Comisión recibida.");
+            }, 2500);
+        }
+
+        function startFeed() {
+            const feed = document.getElementById('live-feed');
+            const names = ["Andrés P.", "Yosef M.", "Carlos R.", "Lucía T.", "Kevin B.", "Sonia V."];
+            setInterval(() => {
+                const name = names[Math.floor(Math.random()*names.length)];
+                const div = document.createElement('div');
+                div.className = "p-4 bg-white rounded-3xl shadow-sm border border-slate-50 feed-animate flex justify-between items-center";
+                div.innerHTML = `<p class="text-[9px] font-bold text-slate-500 uppercase">${name} retiró éxito</p><p class="text-xs font-black text-green-500">+$${(Math.random()*2500 + 300).toFixed(0)}</p>`;
+                feed.prepend(div);
+                if(feed.children.length > 3) feed.lastChild.remove();
+            }, 7500);
+        }
+
+        function logout() { auth.signOut().then(() => window.location.href = "index.html"); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro de Recarga | TaskMaster Pro</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b; 
+            min-height: 100vh;
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .soft-card {
+            background: white;
+            border-radius: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+        }
+
+        .input-pro {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 1.5rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .input-pro:focus {
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-pay {
+            background: #2563eb;
+            color: white;
+            font-weight: 800;
+            transition: 0.3s;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-copy {
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 700;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-size: 11px;
+            transition: 0.2s;
+        }
+
+        .btn-copy:active { background: #dbeafe; transform: scale(0.95); }
+    </style>
+</head>
+<body class="pb-32">
+
+    <header class="header-gradient p-8 pb-12 rounded-b-[3rem] text-white shadow-lg mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight">Recargar Capital</h1>
+                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mt-1">Verificación Inmediata</p>
+            </div>
+            <a href="dashboard.html" class="bg-white/20 p-3 rounded-2xl hover:bg-white/30 transition-all">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="p-6 max-w-xl mx-auto">
+        
+        <div class="soft-card p-8 mb-8">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                    <i class="fas fa-university"></i>
+                </div>
+                <h2 class="text-lg font-extrabold text-slate-800">Datos Bancarios</h2>
+            </div>
+
+            <div id="bank-card" class="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 mb-6 relative overflow-hidden">
+                <div class="space-y-5">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Institución</p>
+                            <p id="bank-name" class="text-sm font-bold text-slate-700">Cargando...</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-600 text-[8px] font-black px-3 py-1 rounded-full uppercase italic">Oficial</span>
+                    </div>
+
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</p>
+                        <p class="text-sm font-bold text-slate-700">TaskMaster Global S.A.</p>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cuenta CLABE</p>
+                            <button onclick="copyClabe()" class="btn-copy">COPIAR</button>
+                        </div>
+                        <p id="bank-clabe" class="text-lg font-black text-blue-600 tracking-wider break-all">0000 0000 0000 0000 00</p>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                        <div>
+                            <p class="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Concepto de Pago</p>
+                            <p id="user-concept" class="text-xl font-black text-slate-800 tracking-[0.3em]">00000</p>
+                        </div>
+                        <i class="fas fa-keyboard text-yellow-400 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="changeBank()" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 flex items-center gap-2 mx-auto mb-2 transition-colors">
+                <i class="fas fa-sync-alt"></i> Cambiar cuenta de destino
+            </button>
+        </div>
+
+        <div class="soft-card p-8 shadow-xl">
+            <h2 class="text-lg font-extrabold text-slate-800 mb-6">Confirmar Transferencia</h2>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Monto enviado (MXN)</label>
+                    <input type="number" id="dep-val" placeholder="$ 0.00" class="input-pro text-xl">
+                </div>
+                
+                <label class="w-full flex flex-col items-center py-8 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-blue-500 mb-2"></i>
+                    <span id="file-label" class="text-[10px] font-bold text-slate-500 uppercase">Subir Comprobante</span>
+                    <input type="file" id="comprobante" class="hidden" accept="image/*" onchange="document.getElementById('file-label').innerText = this.files[0].name">
+                </label>
+
+                <button id="btn-submit" onclick="submitPayment()" class="btn-pay w-full py-5 rounded-[1.5rem] text-sm uppercase tracking-widest">
+                    Confirmar Envío
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 p-6 z-50">
+        <div class="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center border border-slate-100 shadow-2xl">
+            <a href="dashboard.html" class="text-slate-400 p-2"><i class="fas fa-home text-xl"></i></a>
+            <a href="pagos.html" class="text-blue-600 scale-125 p-2"><i class="fas fa-plus-circle text-2xl"></i></a>
+            <a href="retiros.html" class="text-slate-400 p-2"><i class="fas fa-wallet text-xl"></i></a>
+        </div>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
+            authDomain: "tasks-app-80289.firebaseapp.com",
+            projectId: "tasks-app-80289",
+            storageBucket: "tasks-app-80289.firebasestorage.app",
+            messagingSenderId: "135500027421",
+            appId: "1:135500027421:web:8ccb011b5af1f483df58f4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const BANK_ACCOUNTS = [
+            { bank: "Mercado Pago", clabe: "722969010037552859" },
+            { bank: "Spin By Oxxo", clabe: "728969000082118582" },
+            { bank: "Arcus Fi", clabe: "706180318811057637" },
+            { bank: "Nu México", clabe: "638180010143552933" },
+            { bank: "Klar", clabe: "661610000646382940" },
+            { bank: "Swap", clabe: "730969300000284034" }
+        ];
+
+        let currentBankIndex = 0;
+
+        auth.onAuthStateChanged(user => {
+            if(!user) window.location.href = "index.html";
+            else {
+                const shortConcept = Array.from(user.uid).filter(c => !isNaN(c)).slice(0, 5).join("") || "55210";
+                document.getElementById('user-concept').innerText = shortConcept.padEnd(5, "7");
+                changeBank();
+            }
+        });
+
+        function changeBank() {
+            currentBankIndex = Math.floor(Math.random() * BANK_ACCOUNTS.length);
+            document.getElementById('bank-name').innerText = BANK_ACCOUNTS[currentBankIndex].bank;
+            document.getElementById('bank-clabe').innerText = BANK_ACCOUNTS[currentBankIndex].clabe;
+        }
+
+        function copyClabe() {
+            const clabe = document.getElementById('bank-clabe').innerText;
+            navigator.clipboard.writeText(clabe).then(() => {
+                alert("✅ CLABE Copiada: " + clabe);
+            });
+        }
+
+        async function submitPayment() {
+            const val = document.getElementById('dep-val').value;
+            const fileInput = document.getElementById('comprobante');
+            const btn = document.getElementById('btn-submit');
+
+            if(!val || val <= 0) return alert("Por favor, ingresa un monto válido.");
+            if(!fileInput.files[0]) return alert("Por favor, selecciona una foto de tu comprobante.");
+
+            // Bloquear botón para evitar doble clic
+            btn.disabled = true;
+            btn.innerText = "SUBIENDO EVIDENCIA...";
+            btn.style.opacity = "0.5";
+
+            try {
+                // 1. SUBIR A CLOUDINARY
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                formData.append('upload_preset', 'nova_preset');
+
+                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/image/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const cloudData = await cloudRes.json();
+                const imageUrl = cloudData.secure_url;
+
+                if(!imageUrl) throw new Error("Error al procesar la imagen en la nube.");
+
+                // 2. GUARDAR EN FIREBASE CON EL LINK DE LA FOTO
+                await db.collection("deposits").add({
+                    uid: auth.currentUser.uid,
+                    amount: parseFloat(val),
+                    bank_used: BANK_ACCOUNTS[currentBankIndex].bank,
+                    concept: document.getElementById('user-concept').innerText,
+                    evidence: imageUrl, // Aquí se guarda el link de Cloudinary
+                    status: "En revisión",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert("✅ COMPROBANTE RECIBIDO\n\nEl sistema está validando su transferencia. Tiempo estimado: 10 minutos.");
+                window.location.href = "dashboard.html";
+            } catch(e) { 
+                alert("Error: " + e.message); 
+                btn.disabled = false;
+                btn.innerText = "Confirmar Envío";
+                btn.style.opacity = "1";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Billetera | TaskMaster Pro</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b; 
+            min-height: 100vh;
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .soft-card {
+            background: white;
+            border-radius: 2.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+        }
+
+        .input-pro {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 1.2rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .input-pro:focus {
+            border-color: #3b82f6;
+            background: white;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .btn-withdraw {
+            background: #2563eb;
+            color: white;
+            font-weight: 800;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+            transition: 0.3s;
+        }
+
+        .btn-withdraw:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .history-item {
+            border-bottom: 1px solid #f1f5f9;
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="pb-36">
+
+    <header class="header-gradient p-8 pb-16 rounded-b-[3rem] text-white shadow-lg">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-xl font-extrabold tracking-tight">Mi Billetera</h1>
+            <div id="status-pill" class="bg-white/20 backdrop-blur-md status-badge">
+                Sincronizando...
+            </div>
+        </div>
+
+        <div class="text-center py-4">
+            <p class="text-blue-100 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Saldo Total Retirable</p>
+            <h2 class="text-5xl font-black italic">$<span id="bal-val">0.00</span></h2>
+        </div>
+    </header>
+
+    <main class="p-6 max-w-xl mx-auto -translate-y-8">
+        
+        <div class="soft-card p-8 mb-6">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h2 class="text-lg font-extrabold text-slate-800">Solicitar Retiro</h2>
+            </div>
+
+            <div id="withdraw-form" class="space-y-5">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Monto a retirar</label>
+                    <input type="number" id="withdraw-amount" placeholder="Mínimo $200.00" class="input-pro">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Institución Bancaria</label>
+                    <select id="bank-name" class="input-pro appearance-none">
+                        <option value="">Selecciona tu banco</option>
+                        <option value="BBVA">BBVA</option>
+                        <option value="Banamex">Banamex</option>
+                        <option value="Santander">Santander</option>
+                        <option value="Banorte">Banorte</option>
+                        <option value="Mercado Pago">Mercado Pago</option>
+                        <option value="Spin By Oxxo">Spin By Oxxo</option>
+                        <option value="Nu México">Nu México</option>
+                        <option value="Otro">Otro (Especificar)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Cuenta CLABE / Tarjeta</label>
+                    <input type="text" id="bank-account" placeholder="18 dígitos o número de tarjeta" class="input-pro">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Nombre del Titular</label>
+                    <input type="text" id="bank-user" placeholder="Nombre completo" class="input-pro">
+                </div>
+
+                <div id="info-box" class="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3">
+                    <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                    <p class="text-[11px] text-blue-700 font-semibold leading-relaxed" id="info-text">
+                        Para habilitar retiros, asegúrese de haber completado su ciclo de auditorías diarias (5/5).
+                    </p>
+                </div>
+
+                <button onclick="processWithdrawal()" id="btn-withdraw-action" class="btn-withdraw w-full py-5 rounded-[1.5rem] text-xs uppercase tracking-widest mt-4">
+                    Confirmar Retiro
+                </button>
+            </div>
+        </div>
+
+        <div class="soft-card p-8 mb-6">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600">
+                    <i class="fas fa-history"></i>
+                </div>
+                <h2 class="text-lg font-extrabold text-slate-800">Actividad Reciente</h2>
+            </div>
+
+            <div id="history-list" class="space-y-2">
+                <p class="text-[11px] text-slate-400 text-center py-4 italic">No hay movimientos registrados aún.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 p-6 z-50">
+        <div class="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-4 flex justify-around items-center border border-slate-100 shadow-2xl">
+            <a href="dashboard.html" class="text-slate-400 p-2"><i class="fas fa-home text-xl"></i></a>
+            <a href="pagos.html" class="text-slate-400 p-2"><i class="fas fa-plus-circle text-xl"></i></a>
+            <a href="retiros.html" class="text-blue-600 p-2 scale-110"><i class="fas fa-wallet text-xl"></i></a>
+        </div>
+    </nav>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
+            authDomain: "tasks-app-80289.firebaseapp.com",
+            projectId: "tasks-app-80289",
+            storageBucket: "tasks-app-80289.firebasestorage.app",
+            messagingSenderId: "135500027421",
+            appId: "1:135500027421:web:8ccb011b5af1f483df58f4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let userData = null;
+
+        auth.onAuthStateChanged(user => {
+            if(!user) window.location.href = "index.html";
+            else {
+                syncData(user.uid);
+                loadHistory(user.uid);
+            }
+        });
+
+        function syncData(uid) {
+            db.collection("users").doc(uid).onSnapshot(doc => {
+                if(doc.exists) {
+                    userData = doc.data();
+                    renderUI();
+                }
+            });
+        }
+
+        function loadHistory(uid) {
+            db.collection("withdrawals")
+              .where("uid", "==", uid)
+              .orderBy("timestamp", "desc")
+              .onSnapshot(snapshot => {
+                  const historyDiv = document.getElementById('history-list');
+                  if (snapshot.empty) return;
+                  
+                  historyDiv.innerHTML = "";
+                  snapshot.forEach(doc => {
+                      const data = doc.data();
+                      const date = data.timestamp ? data.timestamp.toDate().toLocaleDateString() : 'Pendiente';
+                      
+                      const item = document.createElement('div');
+                      item.className = "history-item";
+                      item.innerHTML = `
+                        <div>
+                            <p class="text-[11px] font-black text-slate-700">${data.bank || 'Transferencia'}</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">${date}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-black text-slate-800">-$${data.amount}</p>
+                            <p class="text-[8px] font-extrabold uppercase ${data.status === 'Completado' ? 'text-green-500' : 'text-amber-500'}">${data.status}</p>
+                        </div>
+                      `;
+                      historyDiv.appendChild(item);
+                  });
+              });
+        }
+
+        function renderUI() {
+            const balance = userData.balance || 0;
+            const step = userData.step || 1;
+            const statusPill = document.getElementById('status-pill');
+            const btn = document.getElementById('btn-withdraw-action');
+            const infoText = document.getElementById('info-text');
+
+            document.getElementById('bal-val').innerText = balance.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+
+            if (step <= 5) {
+                statusPill.innerText = "Auditoría en curso";
+                statusPill.className = "bg-amber-100 text-amber-600 status-badge";
+                btn.disabled = true;
+                btn.innerText = "Pendiente: Misión " + step + "/5";
+            } else {
+                statusPill.innerText = "Disponible";
+                statusPill.className = "bg-green-100 text-green-600 status-badge";
+                btn.disabled = false;
+                btn.innerText = "Confirmar Retiro";
+                infoText.innerText = "¡Ciclo completado! Ahora puedes retirar tus ganancias a tu cuenta bancaria.";
+            }
+        }
+
+        async function processWithdrawal() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const bank = document.getElementById('bank-name').value;
+            const account = document.getElementById('bank-account').value;
+            const name = document.getElementById('bank-user').value;
+
+            if (!amount || amount < 200) return alert("El monto mínimo es $200.00");
+            if (amount > userData.balance) return alert("Saldo insuficiente.");
+            if (!bank || !account || !name) return alert("Por favor, completa todos los campos.");
+
+            try {
+                await db.collection("withdrawals").add({
+                    uid: auth.currentUser.uid,
+                    amount: amount,
+                    bank: bank,
+                    account: account,
+                    holder: name,
+                    status: "En revisión",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await db.collection("users").doc(auth.currentUser.uid).update({
+                    balance: userData.balance - amount
+                });
+
+                alert("✅ SOLICITUD ENVIADA\n\nTu retiro aparecerá en el historial y será procesado en breve.");
+                document.getElementById('withdraw-amount').value = "";
+            } catch(e) { alert(e.message); }
+        }
+    </script>
+</body>
+</html>
