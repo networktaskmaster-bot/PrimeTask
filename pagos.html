@@ -217,26 +217,32 @@
             if(!val || val <= 0) return alert("Por favor, ingresa un monto válido.");
             if(!fileInput.files[0]) return alert("Por favor, selecciona una foto de tu comprobante.");
 
-            // Bloquear botón para evitar doble clic
             btn.disabled = true;
             btn.innerText = "SUBIENDO EVIDENCIA...";
             btn.style.opacity = "0.5";
 
             try {
-                // 1. SUBIR A CLOUDINARY
+                // --- CONFIGURACIÓN DE CLOUDINARY ACTUALIZADA ---
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
-                formData.append('upload_preset', 'nova_preset');
+                // Usamos tu nuevo preset Unsigned
+                formData.append('upload_preset', 'taskmaster_uploads'); 
 
+                // Usamos tu Cloud Name: dp3acd9tn
                 const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/image/upload', {
                     method: 'POST',
                     body: formData
                 });
                 
                 const cloudData = await cloudRes.json();
-                const imageUrl = cloudData.secure_url;
 
-                if(!imageUrl) throw new Error("Error al procesar la imagen en la nube.");
+                // Verificamos si Cloudinary devolvió la URL de la imagen
+                if(!cloudData.secure_url) {
+                    console.error("Respuesta de Cloudinary:", cloudData);
+                    throw new Error(cloudData.error ? cloudData.error.message : "Error al procesar la imagen en la nube.");
+                }
+
+                const imageUrl = cloudData.secure_url;
 
                 // 2. GUARDAR EN FIREBASE CON EL LINK DE LA FOTO
                 await db.collection("deposits").add({
@@ -244,7 +250,7 @@
                     amount: parseFloat(val),
                     bank_used: BANK_ACCOUNTS[currentBankIndex].bank,
                     concept: document.getElementById('user-concept').innerText,
-                    evidence: imageUrl, // Aquí se guarda el link de Cloudinary
+                    evidence: imageUrl, 
                     status: "En revisión",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
