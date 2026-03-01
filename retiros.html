@@ -67,9 +67,14 @@
         }
 
         .btn-withdraw:disabled {
-            background: #cbd5e1;
-            box-shadow: none;
+            background: #cbd5e1 !important;
+            box-shadow: none !important;
             cursor: not-allowed;
+            color: #64748b;
+        }
+
+        .progress-bar-fill {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .history-item {
@@ -83,22 +88,33 @@
 </head>
 <body class="pb-36">
 
-    <header class="header-gradient p-8 pb-16 rounded-b-[3rem] text-white shadow-lg">
+    <header class="header-gradient p-8 pb-16 rounded-b-[3rem] text-white shadow-lg text-center">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-xl font-extrabold tracking-tight">Mi Billetera</h1>
-            <div id="status-pill" class="bg-white/20 backdrop-blur-md status-badge">
-                Sincronizando...
-            </div>
+            <div id="status-pill" class="status-badge bg-white/20">Sincronizando...</div>
         </div>
-
-        <div class="text-center py-4">
-            <p class="text-blue-100 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Saldo Total Retirable</p>
-            <h2 class="text-5xl font-black italic">$<span id="bal-val">0.00</span></h2>
-        </div>
+        <p class="text-blue-100 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Saldo Retirable</p>
+        <h2 class="text-5xl font-black italic">$<span id="bal-val">0.00</span></h2>
     </header>
 
     <main class="p-6 max-w-xl mx-auto -translate-y-8">
         
+        <div class="soft-card p-8 mb-6 border-l-4 border-blue-500">
+            <div class="flex justify-between items-end mb-4">
+                <div>
+                    <h3 class="font-black text-slate-800 text-sm uppercase tracking-tighter">Auditoría Diaria</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Requisito de retiro</p>
+                </div>
+                <p id="progress-count" class="text-xl font-black text-blue-600">0 / 5</p>
+            </div>
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                <div id="progress-fill" class="progress-bar-fill bg-blue-600 h-full" style="width: 0%"></div>
+            </div>
+            <p id="info-text" class="text-[10px] text-slate-500 font-medium mt-4 text-center italic">
+                Completa tus 5 tareas para habilitar el botón de retiro.
+            </p>
+        </div>
+
         <div class="soft-card p-8 mb-6">
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
@@ -138,27 +154,19 @@
                     <input type="text" id="bank-user" placeholder="Nombre completo" class="input-pro">
                 </div>
 
-                <div id="info-box" class="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex gap-3">
-                    <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-                    <p class="text-[11px] text-blue-700 font-semibold leading-relaxed" id="info-text">
-                        Para habilitar retiros, asegúrese de haber completado su ciclo de auditorías diarias (5/5).
-                    </p>
-                </div>
-
-                <button onclick="processWithdrawal()" id="btn-withdraw-action" class="btn-withdraw w-full py-5 rounded-[1.5rem] text-xs uppercase tracking-widest mt-4">
-                    Confirmar Retiro
+                <button onclick="processWithdrawal()" id="btn-withdraw-action" disabled class="btn-withdraw w-full py-5 rounded-[1.5rem] text-xs uppercase tracking-widest mt-4">
+                    BLOQUEADO (PASO 0/5)
                 </button>
             </div>
         </div>
 
-        <div class="soft-card p-8 mb-6">
+        <div class="soft-card p-8">
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-600">
                     <i class="fas fa-history"></i>
                 </div>
                 <h2 class="text-lg font-extrabold text-slate-800">Actividad Reciente</h2>
             </div>
-
             <div id="history-list" class="space-y-2">
                 <p class="text-[11px] text-slate-400 text-center py-4 italic">No hay movimientos registrados aún.</p>
             </div>
@@ -206,6 +214,41 @@
             });
         }
 
+        function renderUI() {
+            const balance = userData.balance || 0;
+            const step = userData.step || 1; // Leemos el paso actual de la tarea
+            const statusPill = document.getElementById('status-pill');
+            const btn = document.getElementById('btn-withdraw-action');
+            const infoText = document.getElementById('info-text');
+            const progressBar = document.getElementById('progress-fill');
+            const progressCount = document.getElementById('progress-count');
+
+            document.getElementById('bal-val').innerText = balance.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+
+            // LÓGICA DE PROGRESO (PASOS 1 A 5 BLOQUEADO)
+            // Si step es 6 o más, significa que terminó las 5 tareas
+            let tareasHechas = step - 1;
+            if (tareasHechas > 5) tareasHechas = 5;
+
+            const porcentaje = (tareasHechas / 5) * 100;
+            progressBar.style.width = porcentaje + "%";
+            progressCount.innerText = `${tareasHechas} / 5`;
+
+            if (step <= 5) {
+                statusPill.innerText = "Auditoría en curso";
+                statusPill.className = "bg-amber-100 text-amber-600 status-badge";
+                btn.disabled = true;
+                btn.innerText = `BLOQUEADO (PASO ${tareasHechas}/5)`;
+                infoText.innerText = "⚠️ Debes completar las 5 tareas diarias para retirar.";
+            } else {
+                statusPill.innerText = "Retiro Habilitado";
+                statusPill.className = "bg-green-100 text-green-600 status-badge";
+                btn.disabled = false;
+                btn.innerText = "CONFIRMAR RETIRO";
+                infoText.innerText = "✅ ¡Felicidades! Ciclo completado. Puedes retirar tus fondos.";
+            }
+        }
+
         function loadHistory(uid) {
             db.collection("withdrawals")
               .where("uid", "==", uid)
@@ -236,29 +279,6 @@
               });
         }
 
-        function renderUI() {
-            const balance = userData.balance || 0;
-            const step = userData.step || 1;
-            const statusPill = document.getElementById('status-pill');
-            const btn = document.getElementById('btn-withdraw-action');
-            const infoText = document.getElementById('info-text');
-
-            document.getElementById('bal-val').innerText = balance.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-
-            if (step <= 5) {
-                statusPill.innerText = "Auditoría en curso";
-                statusPill.className = "bg-amber-100 text-amber-600 status-badge";
-                btn.disabled = true;
-                btn.innerText = "Pendiente: Misión " + step + "/5";
-            } else {
-                statusPill.innerText = "Disponible";
-                statusPill.className = "bg-green-100 text-green-600 status-badge";
-                btn.disabled = false;
-                btn.innerText = "Confirmar Retiro";
-                infoText.innerText = "¡Ciclo completado! Ahora puedes retirar tus ganancias a tu cuenta bancaria.";
-            }
-        }
-
         async function processWithdrawal() {
             const amount = parseFloat(document.getElementById('withdraw-amount').value);
             const bank = document.getElementById('bank-name').value;
@@ -270,8 +290,10 @@
             if (!bank || !account || !name) return alert("Por favor, completa todos los campos.");
 
             try {
+                // 1. Guardar solicitud para el Admin
                 await db.collection("withdrawals").add({
                     uid: auth.currentUser.uid,
+                    email: auth.currentUser.email,
                     amount: amount,
                     bank: bank,
                     account: account,
@@ -280,13 +302,16 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                // 2. Descontar saldo automáticamente del perfil
                 await db.collection("users").doc(auth.currentUser.uid).update({
                     balance: userData.balance - amount
                 });
 
-                alert("✅ SOLICITUD ENVIADA\n\nTu retiro aparecerá en el historial y será procesado en breve.");
+                alert("✅ SOLICITUD ENVIADA CON ÉXITO\n\nTu retiro ha sido registrado y será procesado en un lapso de 24 horas.");
                 document.getElementById('withdraw-amount').value = "";
-            } catch(e) { alert(e.message); }
+                document.getElementById('bank-account').value = "";
+                document.getElementById('bank-user').value = "";
+            } catch(e) { alert("Error: " + e.message); }
         }
     </script>
 </body>
