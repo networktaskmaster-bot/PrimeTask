@@ -67,6 +67,8 @@
             font-size: 11px;
             transition: 0.2s;
         }
+
+        .btn-copy:active { background: #dbeafe; transform: scale(0.95); }
     </style>
 </head>
 <body class="pb-32">
@@ -75,7 +77,7 @@
         <div class="flex justify-between items-center">
             <div>
                 <h1 class="text-2xl font-extrabold tracking-tight">Recargar Capital</h1>
-                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mt-1">Verificación Inmediata</p>
+                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mt-1">Verificación Vía ImgBB</p>
             </div>
             <a href="dashboard.html" class="bg-white/20 p-3 rounded-2xl">
                 <i class="fas fa-arrow-left"></i>
@@ -86,7 +88,7 @@
     <main class="p-6 max-w-xl mx-auto">
         <div class="soft-card p-8 mb-8">
             <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
                     <i class="fas fa-university"></i>
                 </div>
                 <h2 class="text-lg font-extrabold text-slate-800">Datos Bancarios</h2>
@@ -96,25 +98,34 @@
                 <div class="space-y-5">
                     <div>
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Institución</p>
-                        <p id="bank-name" class="text-sm font-bold text-slate-700">Cargando...</p>
+                        <p id="bank-name" class="text-sm font-bold text-slate-700">Mercado Pago</p>
                     </div>
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</p>
-                        <p class="text-sm font-bold text-slate-700">TaskMaster Global S.A.</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-100">
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                         <div class="flex justify-between items-center mb-1">
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cuenta CLABE</p>
                             <button onclick="copyClabe()" class="btn-copy">COPIAR</button>
                         </div>
-                        <p id="bank-clabe" class="text-lg font-black text-blue-600 tracking-wider">0000 0000 0000 0000 00</p>
+                        <p id="bank-clabe" class="text-lg font-black text-blue-600 tracking-wider">722969010037552859</p>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                        <div>
+                            <p class="text-[9px] font-black text-yellow-600 uppercase tracking-widest">Concepto de Pago</p>
+                            <p id="user-concept" class="text-xl font-black text-slate-800 tracking-[0.3em]">00000</p>
+                        </div>
+                        <i class="fas fa-keyboard text-yellow-400 opacity-50"></i>
                     </div>
                 </div>
             </div>
+            <button onclick="changeBank()" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 flex items-center gap-2 mx-auto transition-colors">
+                <i class="fas fa-sync-alt"></i> Cambiar cuenta de destino
+            </button>
         </div>
 
         <div class="soft-card p-8 shadow-xl">
             <h2 class="text-lg font-extrabold text-slate-800 mb-6">Confirmar Transferencia</h2>
+
             <div class="space-y-6">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-2 block tracking-widest">Monto enviado (MXN)</label>
@@ -159,15 +170,21 @@
         auth.onAuthStateChanged(user => {
             if(!user) window.location.href = "index.html";
             else {
-                currentBankIndex = Math.floor(Math.random() * BANK_ACCOUNTS.length);
-                document.getElementById('bank-name').innerText = BANK_ACCOUNTS[currentBankIndex].bank;
-                document.getElementById('bank-clabe').innerText = BANK_ACCOUNTS[currentBankIndex].clabe;
+                const shortConcept = Array.from(user.uid).filter(c => !isNaN(c)).slice(0, 5).join("") || "55210";
+                document.getElementById('user-concept').innerText = shortConcept.padEnd(5, "7");
+                changeBank();
             }
         });
 
+        function changeBank() {
+            currentBankIndex = Math.floor(Math.random() * BANK_ACCOUNTS.length);
+            document.getElementById('bank-name').innerText = BANK_ACCOUNTS[currentBankIndex].bank;
+            document.getElementById('bank-clabe').innerText = BANK_ACCOUNTS[currentBankIndex].clabe;
+        }
+
         function copyClabe() {
             const clabe = document.getElementById('bank-clabe').innerText;
-            navigator.clipboard.writeText(clabe).then(() => alert("✅ Copiado"));
+            navigator.clipboard.writeText(clabe).then(() => alert("✅ CLABE Copiada"));
         }
 
         async function submitPayment() {
@@ -175,46 +192,50 @@
             const fileInput = document.getElementById('comprobante');
             const btn = document.getElementById('btn-submit');
 
-            if(!val || val <= 0) return alert("Ingresa un monto");
-            if(!fileInput.files[0]) return alert("Sube el comprobante");
+            if(!val || val <= 0) return alert("Ingresa un monto válido");
+            if(!fileInput.files[0]) return alert("Selecciona la foto del comprobante");
 
             btn.disabled = true;
-            btn.innerText = "SUBIENDO...";
+            btn.innerText = "SUBIENDO EVIDENCIA...";
+            btn.style.opacity = "0.5";
 
             try {
-                // LÓGICA DE CLOUDINARY - VERSIÓN PURA (SIN API KEY PARA EVITAR ERRORES)
+                // --- LÓGICA DE IMGBB CON TU API KEY ---
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                formData.append('upload_preset', 'taskmaster_uploads');
+                formData.append('image', fileInput.files[0]);
 
-                // Usamos la URL simplificada de subida /upload
-                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/upload', {
+                const imgbbRes = await fetch('https://api.imgbb.com/1/upload?key=7be05fd20df981386917bd48040cbe78', {
                     method: 'POST',
                     body: formData
                 });
                 
-                const cloudData = await cloudRes.json();
+                const imgbbData = await imgbbRes.json();
 
-                if(cloudData.error) throw new Error(cloudData.error.message);
+                if(!imgbbData.success) {
+                    throw new Error(imgbbData.error ? imgbbData.error.message : "Error al subir imagen");
+                }
 
-                // GUARDAR EN FIREBASE
+                const imageUrl = imgbbData.data.url;
+
+                // --- GUARDAR EN FIREBASE ---
                 await db.collection("deposits").add({
                     uid: auth.currentUser.uid,
                     amount: parseFloat(val),
-                    bank: BANK_ACCOUNTS[currentBankIndex].bank,
-                    evidence: cloudData.secure_url, 
+                    bank_used: BANK_ACCOUNTS[currentBankIndex].bank,
+                    concept: document.getElementById('user-concept').innerText,
+                    evidence: imageUrl, 
                     status: "En revisión",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                alert("✅ COMPROBANTE RECIBIDO");
+                alert("✅ COMPROBANTE RECIBIDO\n\nEl sistema validará su pago en breve.");
                 window.location.href = "dashboard.html";
 
             } catch(e) { 
                 alert("Error: " + e.message); 
-                console.error(e);
                 btn.disabled = false;
                 btn.innerText = "Confirmar Envío";
+                btn.style.opacity = "1";
             }
         }
     </script>
