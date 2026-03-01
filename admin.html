@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control | TaskMaster Admin</title>
+    <title>Master Panel | TaskMaster Admin</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -14,54 +14,103 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #1e293b; }
-        .admin-card { background: white; border-radius: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
-        .status-badge { padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-        .pending { background: #fef9c3; color: #854d0e; }
-        .approved { background: #dcfce7; color: #166534; }
-        .rejected { background: #fee2e2; color: #991b1b; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f0f2f5; 
+            color: #1e293b; 
+        }
+
+        .glass-header {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-card {
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 1.5rem;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .btn-approve {
+            background: #22c55e;
+            box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.39);
+        }
+
+        .btn-reject {
+            background: #ef4444;
+            box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+        }
+
+        .badge-pending { background: #fef9c3; color: #854d0e; }
+        .badge-approved { background: #dcfce7; color: #166534; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body class="pb-20">
 
-    <header class="bg-slate-900 text-white p-6 rounded-b-[3rem] shadow-xl mb-6">
-        <div class="flex justify-between items-center max-w-4xl mx-auto">
+    <header class="glass-header sticky top-0 z-50 text-white p-5 rounded-b-[2rem] mb-6">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-extrabold tracking-tight">Admin Master</h1>
-                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Control de Depósitos</p>
+                <h1 class="text-xl font-extrabold tracking-tight italic">TASKMASTER <span class="text-blue-500">ADMIN</span></h1>
+                <p class="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">Panel de Gestión de Capital</p>
             </div>
-            <div class="bg-slate-800 p-3 rounded-2xl">
-                <i class="fas fa-shield-alt text-blue-400"></i>
+            <div class="flex gap-3">
+                <button onclick="location.reload()" class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-sync-alt text-sm"></i>
+                </button>
             </div>
         </div>
     </header>
 
-    <main class="p-4 max-w-4xl mx-auto">
+    <main class="max-w-5xl mx-auto p-4">
         
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <div class="admin-card p-5 text-center">
-                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Pendientes</p>
-                <p id="count-pending" class="text-2xl font-black text-blue-600">0</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="stat-card">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Esperando</p>
+                <p id="total-pending" class="text-2xl font-black text-slate-800">0</p>
             </div>
-            <div class="admin-card p-5 text-center">
-                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Total Aprobado</p>
-                <p id="count-total" class="text-2xl font-black text-green-600">$0</p>
+            <div class="stat-card" style="border-left-color: #22c55e;">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Aprobados</p>
+                <p id="total-approved" class="text-2xl font-black text-slate-800">0</p>
+            </div>
+            <div class="stat-card" style="border-left-color: #10b981;">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Monto Total</p>
+                <p id="sum-amount" class="text-2xl font-black text-slate-800">$0</p>
+            </div>
+            <div class="stat-card" style="border-left-color: #ef4444;">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Rechazados</p>
+                <p id="total-rejected" class="text-2xl font-black text-slate-800">0</p>
             </div>
         </div>
 
-        <h2 class="text-lg font-extrabold text-slate-800 mb-4 px-2">Solicitudes Recientes</h2>
-        
-        <div id="lista-deposits" class="space-y-4">
-            <div class="text-center py-10">
-                <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500 mb-3"></i>
-                <p class="text-slate-500 font-bold text-sm">Buscando solicitudes en Firebase...</p>
+        <div class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar">
+            <button onclick="filtrar('todos')" class="bg-slate-800 text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">Todos</button>
+            <button onclick="filtrar('pending')" class="bg-white text-slate-600 px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap shadow-sm border border-slate-200">Pendientes</button>
+            <button onclick="filtrar('approved')" class="bg-white text-slate-600 px-6 py-2 rounded-full text-[10px] font-bold uppercase whitespace-nowrap shadow-sm border border-slate-200">Aprobados</button>
+        </div>
+
+        <div id="container-requests" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="col-span-full text-center py-20">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                <p class="mt-4 font-bold text-slate-400 text-sm">Sincronizando con la nube...</p>
             </div>
         </div>
 
     </main>
 
     <script>
-        // CONFIGURACIÓN FIREBASE (Mantén la tuya)
+        // CONFIGURACIÓN FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
             authDomain: "tasks-app-80289.firebaseapp.com",
@@ -73,93 +122,144 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 1. FUNCIÓN PARA CARGAR DEPÓSITOS
-        function escucharDepositos() {
-            const contenedor = document.getElementById('lista-deposits');
-            const cPendientes = document.getElementById('count-pending');
-            const cTotal = document.getElementById('count-total');
+        let filtroActual = 'todos';
 
-            // Escuchamos la colección "deposits" en tiempo real
+        // FUNCIÓN PRINCIPAL DE CARGA
+        function initAdmin() {
             db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snapshot => {
-                let html = "";
-                let pendientes = 0;
-                let totalAprobado = 0;
-
-                if (snapshot.empty) {
-                    contenedor.innerHTML = `
-                        <div class="text-center py-10 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                            <p class="text-slate-400 font-bold">No hay registros de depósitos.</p>
-                        </div>`;
-                    return;
-                }
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const id = doc.id;
-
-                    // Sumar estadísticas
-                    if (data.status === "pending" || data.status === "En revisión") pendientes++;
-                    if (data.status === "approved") totalAprobado += data.amount;
-
-                    // Mostrar solo los que NO han sido finalizados o mostrar todos con controles
-                    // En este caso, mostraremos los PENDIENTES arriba con botones
-                    if (data.status === "pending" || data.status === "En revisión") {
-                        html += `
-                        <div class="admin-card p-6 border-l-8 border-yellow-400">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <span class="status-badge pending">${data.status}</span>
-                                    <h3 class="text-xl font-black text-slate-800 mt-2">$${data.amount} MXN</h3>
-                                    <p class="text-[10px] text-slate-400 font-bold">ID USUARIO: ${data.uid.substring(0,10)}...</p>
-                                </div>
-                                <div class="text-right text-[10px] font-bold text-slate-400 italic">
-                                    ${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Recién enviado'}
-                                </div>
-                            </div>
-
-                            <div class="mb-4">
-                                <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Comprobante (ImgBB)</p>
-                                <a href="${data.evidence}" target="_blank">
-                                    <img src="${data.evidence}" class="w-full h-48 object-cover rounded-2xl border border-slate-200 hover:opacity-90 transition">
-                                </a>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3">
-                                <button onclick="gestionarPago('${id}', 'approved')" class="bg-green-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-green-200">
-                                    <i class="fas fa-check mr-2"></i> Aprobar
-                                </button>
-                                <button onclick="gestionarPago('${id}', 'rejected')" class="bg-red-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-red-200">
-                                    <i class="fas fa-times mr-2"></i> Rechazar
-                                </button>
-                            </div>
-                        </div>`;
-                    }
-                });
-
-                contenedor.innerHTML = html || `<p class="text-center text-slate-400 font-bold p-10 bg-white rounded-3xl">Todas las solicitudes han sido procesadas.</p>`;
-                cPendientes.innerText = pendientes;
-                cTotal.innerText = `$${totalAprobado}`;
+                renderRequests(snapshot);
+                updateStats(snapshot);
             });
         }
 
-        // 2. FUNCIÓN PARA CAMBIAR EL ESTADO (APROBAR/RECHAZAR)
-        async function gestionarPago(docId, nuevoEstado) {
-            const confirmacion = confirm(`¿Estás seguro de cambiar el estado a ${nuevoEstado.toUpperCase()}?`);
-            if (!confirmacion) return;
+        function updateStats(snapshot) {
+            let pending = 0, approved = 0, rejected = 0, totalMoney = 0;
+            snapshot.forEach(doc => {
+                const s = doc.data().status;
+                if(s === 'pending' || s === 'En revisión') pending++;
+                if(s === 'approved') {
+                    approved++;
+                    totalMoney += Number(doc.data().amount || 0);
+                }
+                if(s === 'rejected') rejected++;
+            });
+            document.getElementById('total-pending').innerText = pending;
+            document.getElementById('total-approved').innerText = approved;
+            document.getElementById('total-rejected').innerText = rejected;
+            document.getElementById('sum-amount').innerText = `$${totalMoney.toLocaleString()}`;
+        }
+
+        function renderRequests(snapshot) {
+            const container = document.getElementById('container-requests');
+            container.innerHTML = "";
+
+            if(snapshot.empty) {
+                container.innerHTML = `<div class="col-span-full text-center p-10 bg-white rounded-3xl border-2 border-dashed border-slate-200 text-slate-400 font-bold">No hay solicitudes registradas aún.</div>`;
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const id = doc.id;
+                
+                // Normalización de estados para que lea ambos correctamente
+                let displayStatus = data.status;
+                if(displayStatus === 'pending') displayStatus = 'En revisión';
+
+                // Lógica de filtro
+                if(filtroActual !== 'todos') {
+                   if(filtroActual === 'pending' && (data.status !== 'pending' && data.status !== 'En revisión')) return;
+                   if(filtroActual === 'approved' && data.status !== 'approved') return;
+                }
+
+                const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('es-MX', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}) : 'Reciente';
+
+                const card = `
+                    <div class="admin-card p-6 overflow-hidden">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter 
+                                    ${data.status === 'approved' ? 'badge-approved' : (data.status === 'rejected' ? 'badge-rejected' : 'badge-pending')}">
+                                    ${displayStatus}
+                                </span>
+                                <h3 class="text-2xl font-black text-slate-800 mt-2">$${data.amount} <span class="text-xs font-bold text-slate-400 uppercase">MXN</span></h3>
+                            </div>
+                            <p class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">${date}</p>
+                        </div>
+
+                        <div class="space-y-3 mb-6">
+                            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-xs">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <p class="text-[8px] font-black text-slate-400 uppercase">ID del Cliente</p>
+                                    <p class="text-[10px] font-bold text-slate-700 truncate">${data.uid}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                                <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 text-xs">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <div>
+                                    <p class="text-[8px] font-black text-slate-400 uppercase">Banco Utilizado</p>
+                                    <p class="text-[10px] font-bold text-slate-700">${data.bank_used || 'No especificado'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative group cursor-pointer mb-6" onclick="window.open('${data.evidence}', '_blank')">
+                            <img src="${data.evidence}" class="w-full h-44 object-cover rounded-[1.5rem] border border-slate-100 shadow-inner">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-[1.5rem] flex items-center justify-center">
+                                <p class="text-white text-xs font-bold uppercase tracking-widest">Ver Comprobante</p>
+                            </div>
+                        </div>
+
+                        ${data.status === 'pending' || data.status === 'En revisión' ? `
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="actualizarEstado('${id}', 'approved')" class="btn-approve text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-transform active:scale-95">
+                                    <i class="fas fa-check mr-2"></i> Aprobar
+                                </button>
+                                <button onclick="actualizarEstado('${id}', 'rejected')" class="btn-reject text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-transform active:scale-95">
+                                    <i class="fas fa-times mr-2"></i> Rechazar
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="text-center p-3 bg-slate-100 rounded-2xl border border-dashed border-slate-300">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Solicitud Finalizada</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        async function actualizarEstado(docId, nuevoEstado) {
+            const confirmMsg = nuevoEstado === 'approved' ? "¿Confirmas que el dinero está en tu cuenta?" : "¿Rechazar este comprobante?";
+            if(!confirm(confirmMsg)) return;
 
             try {
                 await db.collection("deposits").doc(docId).update({
                     status: nuevoEstado
                 });
-                alert("✅ Estado actualizado con éxito.");
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                alert("❌ Error: " + error.message);
+                alert("Operación exitosa.");
+            } catch (e) {
+                alert("Error: " + e.message);
             }
         }
 
-        // Iniciar la escucha
-        escucharDepositos();
+        function filtrar(tipo) {
+            filtroActual = tipo;
+            // Forzar renderizado
+            db.collection("deposits").get().then(snapshot => {
+                renderRequests(snapshot);
+            });
+        }
+
+        // Iniciar panel
+        initAdmin();
 
     </script>
 </body>
