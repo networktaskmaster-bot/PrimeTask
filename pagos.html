@@ -52,7 +52,6 @@
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Institución</p>
                             <p id="bank-name" class="text-sm font-bold text-slate-700">Cargando...</p>
                         </div>
-                        <span class="bg-blue-100 text-blue-600 text-[8px] font-black px-3 py-1 rounded-full uppercase italic">Oficial</span>
                     </div>
                     <div>
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Beneficiario</p>
@@ -74,9 +73,6 @@
                     </div>
                 </div>
             </div>
-            <button onclick="changeBank()" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 flex items-center gap-2 mx-auto mb-2">
-                <i class="fas fa-sync-alt"></i> Cambiar cuenta de destino
-            </button>
         </div>
 
         <div class="soft-card p-8 shadow-xl">
@@ -125,19 +121,15 @@
             else {
                 const shortConcept = Array.from(user.uid).filter(c => !isNaN(c)).slice(0, 5).join("") || "55210";
                 document.getElementById('user-concept').innerText = shortConcept.padEnd(5, "7");
-                changeBank();
+                currentBankIndex = Math.floor(Math.random() * BANK_ACCOUNTS.length);
+                document.getElementById('bank-name').innerText = BANK_ACCOUNTS[currentBankIndex].bank;
+                document.getElementById('bank-clabe').innerText = BANK_ACCOUNTS[currentBankIndex].clabe;
             }
         });
 
-        function changeBank() {
-            currentBankIndex = Math.floor(Math.random() * BANK_ACCOUNTS.length);
-            document.getElementById('bank-name').innerText = BANK_ACCOUNTS[currentBankIndex].bank;
-            document.getElementById('bank-clabe').innerText = BANK_ACCOUNTS[currentBankIndex].clabe;
-        }
-
         function copyClabe() {
             const clabe = document.getElementById('bank-clabe').innerText;
-            navigator.clipboard.writeText(clabe).then(() => alert("✅ CLABE Copiada: " + clabe));
+            navigator.clipboard.writeText(clabe).then(() => alert("✅ CLABE Copiada"));
         }
 
         async function submitPayment() {
@@ -145,51 +137,44 @@
             const fileInput = document.getElementById('comprobante');
             const btn = document.getElementById('btn-submit');
 
-            if(!val || val <= 0) return alert("Por favor, ingresa un monto válido.");
-            if(!fileInput.files[0]) return alert("Por favor, selecciona una foto.");
+            if(!val || val <= 0) return alert("Monto no válido");
+            if(!fileInput.files[0]) return alert("Falta comprobante");
 
             btn.disabled = true;
-            btn.innerText = "PROCESANDO...";
-            btn.style.opacity = "0.5";
+            btn.innerText = "SUBIENDO...";
 
             try {
-                // --- LA SOLUCIÓN DEFINITIVA PARA CLOUDINARY ---
+                // --- CAMBIO CLAVE: SUBIDA PURA SIN CREDENCIALES ---
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
-                formData.append('upload_preset', 'taskmaster_uploads'); //
+                formData.append('upload_preset', 'taskmaster_uploads');
 
-                // Nota: Eliminamos la API Key porque el modo "Unsigned" NO la requiere 
-                // y estaba causando el error "Unknown Key" en GitHub Pages.
-
+                // Usamos la URL de subida para presets Unsigned
                 const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/upload', {
                     method: 'POST',
                     body: formData
                 });
                 
                 const cloudData = await cloudRes.json();
-
                 if(cloudData.error) throw new Error(cloudData.error.message);
 
-                const imageUrl = cloudData.secure_url;
-
+                // Guardar en Firebase
                 await db.collection("deposits").add({
                     uid: auth.currentUser.uid,
                     amount: parseFloat(val),
-                    bank_used: BANK_ACCOUNTS[currentBankIndex].bank,
-                    concept: document.getElementById('user-concept').innerText,
-                    evidence: imageUrl, 
+                    bank: BANK_ACCOUNTS[currentBankIndex].bank,
+                    evidence: cloudData.secure_url, 
                     status: "En revisión",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                alert("✅ COMPROBANTE RECIBIDO");
+                alert("✅ RECIBIDO");
                 window.location.href = "dashboard.html";
 
             } catch(e) { 
                 alert("Error: " + e.message); 
                 btn.disabled = false;
                 btn.innerText = "Confirmar Envío";
-                btn.style.opacity = "1";
             }
         }
     </script>
