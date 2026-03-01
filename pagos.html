@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centro de Recarga | TaskMaster Pro</title>
+    <title>Centro de Recarga | TaskMaster Global</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -86,7 +86,6 @@
     </header>
 
     <main class="p-6 max-w-xl mx-auto">
-        
         <div class="soft-card p-8 mb-8">
             <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
@@ -222,29 +221,26 @@
             btn.style.opacity = "0.5";
 
             try {
-                // --- CONFIGURACIÓN DE CLOUDINARY ACTUALIZADA ---
+                // --- LÓGICA DE CLOUDINARY CORREGIDA ---
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
-                // Usamos tu nuevo preset Unsigned
-                formData.append('upload_preset', 'taskmaster_uploads'); 
+                formData.append('upload_preset', 'taskmaster_uploads'); // Tu preset UNSIGNED
 
-                // Usamos tu Cloud Name: dp3acd9tn
-                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/image/upload', {
+                // URL simplificada para evitar errores de API Key
+                const cloudRes = await fetch('https://api.cloudinary.com/v1_1/dp3acd9tn/upload', {
                     method: 'POST',
                     body: formData
                 });
                 
                 const cloudData = await cloudRes.json();
 
-                // Verificamos si Cloudinary devolvió la URL de la imagen
-                if(!cloudData.secure_url) {
-                    console.error("Respuesta de Cloudinary:", cloudData);
-                    throw new Error(cloudData.error ? cloudData.error.message : "Error al procesar la imagen en la nube.");
+                if(cloudData.error) {
+                    throw new Error(cloudData.error.message);
                 }
 
                 const imageUrl = cloudData.secure_url;
 
-                // 2. GUARDAR EN FIREBASE CON EL LINK DE LA FOTO
+                // 2. GUARDAR EN FIREBASE
                 await db.collection("deposits").add({
                     uid: auth.currentUser.uid,
                     amount: parseFloat(val),
@@ -257,8 +253,10 @@
 
                 alert("✅ COMPROBANTE RECIBIDO\n\nEl sistema está validando su transferencia. Tiempo estimado: 10 minutos.");
                 window.location.href = "dashboard.html";
+
             } catch(e) { 
-                alert("Error: " + e.message); 
+                alert("Error de Conexión: " + e.message); 
+                console.error("Detalle:", e);
                 btn.disabled = false;
                 btn.innerText = "Confirmar Envío";
                 btn.style.opacity = "1";
