@@ -3,130 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Control Pro | TaskMaster</title>
+    <title>Panel de Control | TaskMaster Admin</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; overflow: hidden; }
-        .tab-content { display: none; height: 100%; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .sidebar { background: #0f172a; z-index: 50; }
-        .nav-link { 
-            display: flex; align-items: center; gap: 12px; padding: 12px 18px;
-            border-radius: 12px; color: #94a3b8; transition: 0.3s; font-size: 13px; font-weight: 600;
-            width: 100%; cursor: pointer; border: none; background: transparent;
-        }
-        .nav-link:hover { background: rgba(255,255,255,0.05); color: white; }
-        .nav-link.active { background: #2563eb; color: white; }
-        .admin-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .img-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 12px; cursor: pointer; border: 2px solid #f1f5f9; }
-        /* Chat Styles */
-        .chat-window { height: 450px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 20px; background: #f1f5f9; border-radius: 1rem; }
-        .m-admin { align-self: flex-end; background: #2563eb; color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; font-size: 12px; }
-        .m-user { align-self: flex-start; background: white; color: #1e293b; padding: 10px 15px; border-radius: 15px 15px 15px 0; font-size: 12px; border: 1px solid #e2e8f0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+        .admin-card { background: white; border-radius: 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+        .status-badge { padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .pending { background: #fef9c3; color: #854d0e; }
+        .approved { background: #dcfce7; color: #166534; }
+        .rejected { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="pb-20">
 
-    <aside class="w-64 sidebar p-6 flex flex-col gap-6 text-white shrink-0">
-        <div class="px-2 mb-4">
-            <h1 class="text-lg font-black italic text-white">TASKMASTER <span class="text-blue-500 block text-[10px] tracking-widest">CONTROL</span></h1>
+    <header class="bg-slate-900 text-white p-6 rounded-b-[3rem] shadow-xl mb-6">
+        <div class="flex justify-between items-center max-w-4xl mx-auto">
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight">Admin Master</h1>
+                <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Control de Depósitos</p>
+            </div>
+            <div class="bg-slate-800 p-3 rounded-2xl">
+                <i class="fas fa-shield-alt text-blue-400"></i>
+            </div>
         </div>
-        <nav class="flex flex-col gap-1 flex-1">
-            <button onclick="showTab('dashboard', this)" class="nav-link active"><i class="fas fa-chart-pie"></i> Dashboard</button>
-            <button onclick="showTab('users', this)" class="nav-link"><i class="fas fa-users"></i> Usuarios</button>
-            <button onclick="showTab('staff', this)" class="nav-link"><i class="fas fa-shield-user"></i> Personal</button>
-            <button onclick="showTab('deposits', this)" class="nav-link"><i class="fas fa-arrow-down"></i> Depósitos</button>
-            <button onclick="showTab('support', this)" class="nav-link"><i class="fas fa-headset"></i> Soporte</button>
-        </nav>
-        <button onclick="auth.signOut()" class="nav-link text-red-400"><i class="fas fa-power-off"></i> Salir</button>
-    </aside>
+    </header>
 
-    <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8">
-            <h2 id="tab-title" class="text-sm font-black text-slate-800 uppercase">Dashboard General</h2>
-            <p id="admin-mail-display" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full"></p>
-        </header>
-
-        <div class="flex-1 overflow-y-auto p-8">
-            
-            <div id="dashboard" class="tab-content active">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div class="admin-card p-6 text-center">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Total Usuarios</p>
-                        <h3 id="stat-total-users" class="text-2xl font-black">0</h3>
-                    </div>
-                    <div class="admin-card p-6 text-center">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Capital Total</p>
-                        <h3 id="stat-total-money" class="text-2xl font-black text-blue-600">$0</h3>
-                    </div>
-                    <div class="admin-card p-6 text-center">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Soporte</p>
-                        <h3 id="stat-support" class="text-2xl font-black text-red-500">0</h3>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="admin-card p-6"><canvas id="chartDevices"></canvas></div>
-                    <div class="admin-card p-6"><canvas id="chartFlow"></canvas></div>
-                </div>
+    <main class="p-4 max-w-4xl mx-auto">
+        
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="admin-card p-5 text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Pendientes</p>
+                <p id="count-pending" class="text-2xl font-black text-blue-600">0</p>
             </div>
-
-            <div id="users" class="tab-content">
-                <div class="admin-card overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-[10px] uppercase font-black text-slate-400">
-                            <tr><th class="p-4">Usuario</th><th>Balance</th><th>Nivel</th><th>Acciones</th></tr>
-                        </thead>
-                        <tbody id="users-table" class="text-sm"></tbody>
-                    </table>
-                </div>
+            <div class="admin-card p-5 text-center">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Total Aprobado</p>
+                <p id="count-total" class="text-2xl font-black text-green-600">$0</p>
             </div>
-
-            <div id="staff" class="tab-content">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-lg font-bold">Equipo Administrativo</h3>
-                    <button onclick="addStaff()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">+ Agregar</button>
-                </div>
-                <div class="admin-card overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
-                            <tr><th class="p-4">Email</th><th>Rol</th><th>Acción</th></tr>
-                        </thead>
-                        <tbody id="staff-table" class="text-sm font-semibold"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="deposits" class="tab-content">
-                <div id="deposits-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-            </div>
-
-            <div id="support" class="tab-content">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                    <div id="support-list" class="space-y-3 overflow-y-auto pr-2"></div>
-                    <div id="chat-panel" class="lg:col-span-2 admin-card p-6 flex flex-col gap-4" style="display:none;">
-                        <h4 id="chat-user-title" class="font-black text-sm uppercase border-b pb-2">Chat</h4>
-                        <div id="admin-chat-box" class="chat-window"></div>
-                        <div class="flex gap-2">
-                            <input type="text" id="admin-reply-input" placeholder="Escribir..." class="flex-1 bg-slate-100 rounded-xl px-4 py-3 text-sm outline-none">
-                            <button onclick="sendAdminReply()" class="bg-blue-600 text-white px-6 rounded-xl"><i class="fas fa-paper-plane"></i></button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
+
+        <h2 class="text-lg font-extrabold text-slate-800 mb-4 px-2">Solicitudes Recientes</h2>
+        
+        <div id="lista-deposits" class="space-y-4">
+            <div class="text-center py-10">
+                <i class="fas fa-circle-notch fa-spin text-3xl text-blue-500 mb-3"></i>
+                <p class="text-slate-500 font-bold text-sm">Buscando solicitudes en Firebase...</p>
+            </div>
+        </div>
+
     </main>
 
     <script>
+        // CONFIGURACIÓN FIREBASE (Mantén la tuya)
         const firebaseConfig = {
             apiKey: "AIzaSyAl8xcRhkgE3lI05ShqQRMH0fxx7eNJMEk",
             authDomain: "tasks-app-80289.firebaseapp.com",
@@ -137,136 +72,95 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
-        let activeChatUid = null;
 
-        auth.onAuthStateChanged(user => {
-            if(!user) window.location.href = "index.html";
-            else {
-                document.getElementById('admin-mail-display').innerText = user.email;
-                initCharts();
-                loadData();
-                loadDeposits();
-                loadSupportTickets();
-            }
-        });
+        // 1. FUNCIÓN PARA CARGAR DEPÓSITOS
+        function escucharDepositos() {
+            const contenedor = document.getElementById('lista-deposits');
+            const cPendientes = document.getElementById('count-pending');
+            const cTotal = document.getElementById('count-total');
 
-        function showTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
-            document.getElementById('tab-title').innerText = btn.innerText;
-        }
+            // Escuchamos la colección "deposits" en tiempo real
+            db.collection("deposits").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                let html = "";
+                let pendientes = 0;
+                let totalAprobado = 0;
 
-        function loadData() {
-            db.collection("users").onSnapshot(snap => {
-                const usersTable = document.getElementById('users-table');
-                const staffTable = document.getElementById('staff-table');
-                let totalMoney = 0;
-                usersTable.innerHTML = "";
-                staffTable.innerHTML = "";
+                if (snapshot.empty) {
+                    contenedor.innerHTML = `
+                        <div class="text-center py-10 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
+                            <p class="text-slate-400 font-bold">No hay registros de depósitos.</p>
+                        </div>`;
+                    return;
+                }
 
-                snap.forEach(doc => {
-                    const u = doc.data();
-                    if(!u.role || u.role === 'user') {
-                        totalMoney += (u.balance || 0);
-                        usersTable.innerHTML += `
-                            <tr class="border-b">
-                                <td class="p-4 font-bold">${u.username}<br><span class="text-[9px] text-slate-400">${doc.id}</span></td>
-                                <td class="font-black text-blue-600">$${u.balance || 0}</td>
-                                <td>Nivel ${u.level || 1}</td>
-                                <td><button onclick="editBalance('${doc.id}', ${u.balance})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button></td>
-                            </tr>`;
-                    } else {
-                        staffTable.innerHTML += `<tr><td class="p-4">${u.email}</td><td>${u.role}</td><td><button onclick="removeStaff('${doc.id}')" class="text-red-400">X</button></td></tr>`;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const id = doc.id;
+
+                    // Sumar estadísticas
+                    if (data.status === "pending" || data.status === "En revisión") pendientes++;
+                    if (data.status === "approved") totalAprobado += data.amount;
+
+                    // Mostrar solo los que NO han sido finalizados o mostrar todos con controles
+                    // En este caso, mostraremos los PENDIENTES arriba con botones
+                    if (data.status === "pending" || data.status === "En revisión") {
+                        html += `
+                        <div class="admin-card p-6 border-l-8 border-yellow-400">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <span class="status-badge pending">${data.status}</span>
+                                    <h3 class="text-xl font-black text-slate-800 mt-2">$${data.amount} MXN</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold">ID USUARIO: ${data.uid.substring(0,10)}...</p>
+                                </div>
+                                <div class="text-right text-[10px] font-bold text-slate-400 italic">
+                                    ${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Recién enviado'}
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <p class="text-[9px] font-black text-slate-400 uppercase mb-2">Comprobante (ImgBB)</p>
+                                <a href="${data.evidence}" target="_blank">
+                                    <img src="${data.evidence}" class="w-full h-48 object-cover rounded-2xl border border-slate-200 hover:opacity-90 transition">
+                                </a>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="gestionarPago('${id}', 'approved')" class="bg-green-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-green-200">
+                                    <i class="fas fa-check mr-2"></i> Aprobar
+                                </button>
+                                <button onclick="gestionarPago('${id}', 'rejected')" class="bg-red-600 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-red-200">
+                                    <i class="fas fa-times mr-2"></i> Rechazar
+                                </button>
+                            </div>
+                        </div>`;
                     }
                 });
-                document.getElementById('stat-total-users').innerText = snap.size;
-                document.getElementById('stat-total-money').innerText = `$${totalMoney.toLocaleString()}`;
+
+                contenedor.innerHTML = html || `<p class="text-center text-slate-400 font-bold p-10 bg-white rounded-3xl">Todas las solicitudes han sido procesadas.</p>`;
+                cPendientes.innerText = pendientes;
+                cTotal.innerText = `$${totalAprobado}`;
             });
         }
 
-        function loadDeposits() {
-            db.collection("deposits").where("status", "==", "En revisión").onSnapshot(snap => {
-                const container = document.getElementById('deposits-list');
-                container.innerHTML = "";
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    container.innerHTML += `
-                        <div class="admin-card p-4">
-                            <img src="${d.evidence || ''}" class="img-preview mb-2">
-                            <p class="font-black text-green-600">$${d.amount}</p>
-                            <button onclick="approveDeposit('${doc.id}', '${d.uid}', ${d.amount})" class="w-full bg-blue-600 text-white py-2 rounded-lg mt-2 text-xs">Aprobar</button>
-                        </div>`;
+        // 2. FUNCIÓN PARA CAMBIAR EL ESTADO (APROBAR/RECHAZAR)
+        async function gestionarPago(docId, nuevoEstado) {
+            const confirmacion = confirm(`¿Estás seguro de cambiar el estado a ${nuevoEstado.toUpperCase()}?`);
+            if (!confirmacion) return;
+
+            try {
+                await db.collection("deposits").doc(docId).update({
+                    status: nuevoEstado
                 });
-            });
+                alert("✅ Estado actualizado con éxito.");
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                alert("❌ Error: " + error.message);
+            }
         }
 
-        // --- SOPORTE ---
-        function loadSupportTickets() {
-            db.collection("soporte").orderBy("lastUpdate", "desc").onSnapshot(snap => {
-                const list = document.getElementById('support-list');
-                list.innerHTML = "";
-                document.getElementById('stat-support').innerText = snap.size;
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    const isNew = data.unread ? 'border-l-4 border-blue-500' : '';
-                    list.innerHTML += `<div onclick="openChat('${doc.id}', '${data.username}')" class="admin-card p-4 cursor-pointer ${isNew}">
-                        <h5 class="text-xs font-black uppercase">${data.username}</h5>
-                        <p class="text-[9px] text-slate-400">${data.unread ? 'NUEVO MENSAJE' : 'Leído'}</p>
-                    </div>`;
-                });
-            });
-        }
+        // Iniciar la escucha
+        escucharDepositos();
 
-        function openChat(uid, name) {
-            activeChatUid = uid;
-            document.getElementById('chat-panel').style.display = 'flex';
-            document.getElementById('chat-user-title').innerText = name;
-            db.collection("soporte").doc(uid).update({ unread: false });
-            db.collection("soporte").doc(uid).collection("mensajes").orderBy("fecha", "asc").onSnapshot(snap => {
-                const box = document.getElementById('admin-chat-box');
-                box.innerHTML = "";
-                snap.forEach(m => {
-                    const d = m.data();
-                    box.innerHTML += `<div class="${d.sender === 'user' ? 'm-user' : 'm-admin'}">${d.texto}</div>`;
-                });
-                box.scrollTop = box.scrollHeight;
-            });
-        }
-
-        async function sendAdminReply() {
-            const txt = document.getElementById('admin-reply-input').value;
-            if(!txt) return;
-            await db.collection("soporte").doc(activeChatUid).collection("mensajes").add({
-                texto: txt, sender: 'admin', fecha: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            await db.collection("soporte").doc(activeChatUid).update({ lastUpdate: firebase.firestore.FieldValue.serverTimestamp() });
-            document.getElementById('admin-reply-input').value = "";
-        }
-
-        async function approveDeposit(id, uid, amt) {
-            const userRef = db.collection("users").doc(uid);
-            const userDoc = await userRef.get();
-            const newBal = (userDoc.data().balance || 0) + amt;
-            await userRef.update({ balance: newBal });
-            await db.collection("deposits").doc(id).update({ status: "Aprobado" });
-        }
-
-        async function editBalance(uid, cur) {
-            const val = prompt("Nuevo balance:", cur);
-            if(val) await db.collection("users").doc(uid).update({ balance: parseFloat(val) });
-        }
-
-        async function removeStaff(uid) {
-            await db.collection("users").doc(uid).update({ role: "user" });
-        }
-
-        function initCharts() {
-            new Chart(document.getElementById('chartDevices'), { type: 'doughnut', data: { labels: ['Móvil', 'PC'], datasets: [{ data: [10, 5], backgroundColor: ['#3b82f6', '#e2e8f0'] }] } });
-            new Chart(document.getElementById('chartFlow'), { type: 'line', data: { labels: ['Lun', 'Dom'], datasets: [{ label: 'Flujo', data: [100, 500], borderColor: '#10b981' }] } });
-        }
     </script>
 </body>
 </html>
